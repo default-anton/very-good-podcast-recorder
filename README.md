@@ -54,4 +54,5 @@ Once the core recording path is solid, useful additions would be:
 
 - direct export to S3, Google Drive, DigitalOcean Spaces, Dropbox, Backblaze, MEGA, and other storage providers.
 - livestream output to YouTube, Twitch, X, LinkedIn, and other platforms
+- support for other temporary recording hosts, including Hetzner Cloud, Vultr, Linode, and AWS Lightsail
 - smoother post-recording delivery
