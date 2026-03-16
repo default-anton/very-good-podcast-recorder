@@ -1,5 +1,11 @@
 # v1 architecture and tech stack
 
+Related docs:
+
+- `docs/repo-layout.md`
+- `docs/milestones.md`
+- `docs/testing.md`
+
 ## recommendation
 
 Ship v1 as a **single-tenant temporary session server** per recording.
