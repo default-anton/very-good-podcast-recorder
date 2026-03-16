@@ -1,6 +1,6 @@
 # Project Overview
 
-very-good-podcast-recorder is an open-source remote podcast recorder: browser call, local per-participant tracks, temporary recording infrastructure, host-controlled files and workflow.
+very-good-podcast-recorder is an open-source remote podcast recorder: browser-based session joining via URL, local per-participant tracks, a temporary session server, and host-controlled recording files and workflow.
 
 `README.md` is the current product and scope source of truth.
 
@@ -17,3 +17,4 @@ very-good-podcast-recorder is an open-source remote podcast recorder: browser ca
 - Protect the recording path over convenience features.
 - Keep the live call path, local capture path, and upload path loosely coupled. Failure in one path must not silently corrupt the others.
 - Prefer boring, observable systems. Critical paths need logs, reproducible tests, or other fast feedback loops.
+- Keep the join flow simple: hosts and guests should be able to join a session from a browser via URL without infrastructure access or manual setup.

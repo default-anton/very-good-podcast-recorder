@@ -1,28 +1,31 @@
 # very-good-podcast-recorder
 
-Open-source remote podcast recording with local tracks and pay-only-when-you-record infrastructure. It is built for creators who want Riverside-style recording quality while keeping control of their workflow, data, and costs.
+Open-source remote podcast recording with a temporary session server, browser-based joining, and local tracks. It is built for creators who want Riverside-style recording quality while keeping control of their workflow, data, and costs.
 
 This repo is for technical podcast hosts and producers who want the recording quality of local tracks without handing the whole workflow to a hosted platform.
 
 ## How it works
 
-For each recording session, the host starts a temporary DigitalOcean droplet in the best available region.
+For each recording session, the host starts a temporary session server in the best available region.
 
-Everyone joins from Chrome or another modern browser, like a normal video call. While the call is running, each participant records audio and video locally on their own machine. Those recordings are uploaded to the droplet in the background as chunks. After the session, the host downloads the files and destroys the droplet.
+That server runs the backend for the live browser session and receives uploaded recording chunks during the call. The host shares a join URL, and hosts and guests open it in Chrome or another modern browser, like a normal video call.
+
+While the session is running, each participant records audio and video locally on their own machine. Those recordings are uploaded to the session server in the background as chunks. The main host controls when recording starts and stops. After the session, the host downloads the files and destroys the server.
 
 That gives you three separate things:
 
-- a live call path for conversation and monitoring
+- a live session path for conversation and monitoring
 - a local capture path for higher-quality per-participant recordings
-- an upload path that pushes recorded chunks to the droplet during the session
+- an upload path that pushes recorded chunks to the session server during the session
 
-The point is simple: the call should feel normal, but the final files should be better than a live mixed recording.
+The point is simple: joining should feel like opening a normal call link, but the final files should be better than a live mixed recording.
 
 ## What you get
 
-- browser-based group call for hosts and guests
+- browser-based group session that hosts and guests join via a URL
+- a temporary session server for the live session and recording uploads
 - separate local audio and video tracks per participant
-- temporary recording infrastructure instead of an always-on server
+- host-controlled recording start and stop
 - storage and workflow under your control
 - session costs tied to actual recording time
 
@@ -32,12 +35,14 @@ The first version is intentionally narrow.
 
 It does this:
 
-- start a temporary recording droplet for a session
-- let people join in the browser
+- start a temporary session server for a recording
+- provide a join URL for hosts and guests
+- run the live browser session through that server
+- let the main host start and stop recording
 - record local participant tracks
-- upload those tracks in the background
+- upload those tracks in the background to the server
 - let the host download the files manually
-- shut the droplet down when the session is over
+- destroy the server when the session is over
 
 It does not try to be a polished studio product yet.
 
