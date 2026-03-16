@@ -1,4 +1,4 @@
-# first 3 milestones
+# milestones
 
 ## rule
 
@@ -9,6 +9,32 @@ Each one ends with:
 - a runnable demo
 - a machine-checkable signal
 - one new fact about the product, not just more code
+
+Milestone 0 exists to protect speed. Do it first.
+
+## milestone 0 — engineering baseline
+
+See `docs/feedback-loop.md` for the quality bar and tool choices.
+
+**Goal:** establish the fast feedback loop before feature work starts compounding.
+
+**Must ship:**
+
+- initial repo structure in place, aligned with `docs/repo-layout.md`
+- initial setup for `web/`, `cmd/sessiond/`, `e2e/`, `deploy/`, and `scripts/`
+- formatter + linter wired into stable local commands
+- `prek` pre-commit hooks for fast changed-file checks
+- initial unit-test command shape
+- CI quality gate for formatting, linting, tests, and vulnerability scanning
+- structured logging conventions for backend and harness code
+- bootstrap docs so a contributor can install deps and run the default checks quickly
+
+**Done when:**
+
+- contributors get fast local feedback by default
+- the repo already has the expected structure for the first backend, frontend, harness, and deploy slices
+- CI blocks obvious regressions
+- new code has a clear path for logs, checks, and tests
 
 ## milestone 1 — session join loop
 
@@ -84,14 +110,13 @@ Each one ends with:
 
 ## what comes right after
 
-Once milestone 3 is green, the next milestones are:
-
 1. reconnect during recording
 2. upload stall and resume
 3. remote alpha on one cloud target
 
 That keeps the order right:
 
+- fast feedback loop
 - basic session loop
 - basic recording loop
 - full happy path
