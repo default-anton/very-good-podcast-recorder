@@ -76,7 +76,7 @@ If a flow matters, it needs logs we can grep and machine-parse.
 **Must ship:**
 
 - initial repo skeleton matching `docs/repo-layout.md`
-- initial setup for the main surfaces: `web/`, `cmd/sessiond/`, `e2e/`, `deploy/`, `scripts/`
+- initial setup for the main surfaces: `web/control/`, `web/session/`, `cmd/controlplane/`, `cmd/sessiond/`, `e2e/`, `deploy/`, `scripts/`
 - formatter configured and runnable from one stable command
 - linter configured and runnable from one stable command
 - pre-commit hooks via `prek`

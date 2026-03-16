@@ -1,16 +1,16 @@
 # very-good-podcast-recorder
 
-Open-source remote podcast recording with a temporary session server, browser-based joining, and local tracks. It is built for creators who want Riverside-style recording quality while keeping control of their workflow, data, and costs.
+Open-source remote podcast recording with a persistent host control plane, temporary session servers, browser-based joining, and local tracks. It is built for creators who want Riverside-style recording quality while keeping control of their workflow, data, and costs.
 
 This repo is for technical podcast hosts and producers who want the recording quality of local tracks without handing the whole workflow to a hosted platform.
 
 ## How it works
 
-For each recording session, the host starts a temporary session server in the best available region.
+The main host runs or deploys a persistent control plane web app. It keeps the SQLite database for sessions and participants, creates and destroys temporary session servers, and gives the host one place to manage the recording.
 
-That server runs the backend for the live browser session and receives uploaded recording chunks during the call. The host shares a join URL, and hosts and guests open it in Chrome or another modern browser, like a normal video call.
+For each recording session, the control plane starts a temporary session server in the best available region and syncs the stable participant IDs needed for reconnect handling. That server runs the backend for the live browser session and receives uploaded recording chunks during the call. The host shares a join URL, and hosts and guests open it in Chrome or another modern browser, like a normal video call.
 
-While the session is running, each participant records audio and video locally on their own machine. Those recordings are uploaded to the session server in the background as chunks. The main host controls when recording starts and stops. After the session, the host downloads the files and destroys the server.
+While the session is running, each participant records audio and video locally on their own machine. Those recordings are uploaded to the session server in the background as chunks. The main host controls when recording starts and stops from the control plane. After the session, the host downloads the files and destroys the server from the control plane.
 
 That gives you three separate things:
 
@@ -22,9 +22,11 @@ The point is simple: joining should feel like opening a normal call link, but th
 
 ## What you get
 
+- a persistent host control plane web app with SQLite-backed session and participant state
 - browser-based group session that hosts and guests join via a URL
 - a temporary session server for the live session and recording uploads
 - separate local audio and video tracks per participant
+- stable participant identities for reconnect handling
 - host-controlled recording start and stop
 - storage and workflow under your control
 - session costs tied to actual recording time
@@ -35,14 +37,16 @@ The first version is intentionally narrow.
 
 It does this:
 
+- run the host control plane locally or on a cheap VPS
+- create sessions and participant records there
 - start a temporary session server for a recording
 - provide a join URL for hosts and guests
 - run the live browser session through that server
-- let the main host start and stop recording
+- let the main host start and stop recording from the control plane
 - record local participant tracks
 - upload those tracks in the background to the server
 - let the host download the files manually
-- destroy the server when the session is over
+- destroy the server from the control plane when the session is over
 
 It does not try to be a polished studio product yet.
 

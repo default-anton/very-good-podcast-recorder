@@ -9,7 +9,7 @@ Related docs:
 
 ## recommendation
 
-Ship v1 as a **single-tenant temporary session server** per recording.
+Ship v1 as a **persistent host control plane** plus a **single-tenant temporary session server** per recording.
 
 Keep the product split into 3 independent paths:
 
@@ -19,16 +19,20 @@ Keep the product split into 3 independent paths:
 
 That is the right shape for reliability. A bad live connection must not silently ruin the local recording, and a stalled upload must not kill the call.
 
+Keep host orchestration out of the media-critical path: the persistent control plane owns sessions, participant identities, and provisioning; the temporary session server owns the live call and chunk ingest.
+
 ## stack
 
 - **frontend**: TypeScript, React, Vite
+- **control plane api**: Go, `net/http` + stdlib `ServeMux`
 - **live media**: self-hosted **LiveKit** on the temporary session server
-- **app api / upload service**: Go, `net/http` + stdlib `ServeMux`
-- **state**: SQLite for session metadata, upload manifests, and track status
+- **session api / upload service**: Go, `net/http` + stdlib `ServeMux`
+- **control-plane state**: SQLite for session metadata, participant identities, and provisioning state
+- **session-local state**: SQLite manifests + local disk for upload progress and track status, keyed by control-plane session/participant IDs
 - **file storage**: local disk on the session VM for v1, organized by session/participant/track/chunk
 - **edge / tls**: Caddy
 - **turn / nat traversal**: coturn
-- **packaging**: Docker Compose on a single Ubuntu VM
+- **packaging**: Docker Compose for the temporary session server; keep the control plane simple enough to run locally or on a small Ubuntu VM
 - **provisioning**: start with one cloud target only (Hetzner or DigitalOcean), add others later
 - **tests**: Go test for backend, Vitest for frontend units, Playwright for host/guest smoke flows
 - **observability**: structured JSON logs, per-track upload counters, explicit session manifests
@@ -36,13 +40,15 @@ That is the right shape for reliability. A bad live connection must not silently
 ## why this stack
 
 - **don’t build an SFU first**. LiveKit is the boring choice and buys us reconnects, room semantics, TURN support, and a path to scale.
+- **a persistent control plane** is the right place for host UX, stable participant IDs, and cloud-provider orchestration.
 - **Go for the control plane and upload path** is the better long-term default: simpler deployment, lower overhead on chunk ingest, and still fast to ship.
-- **SQLite + local disk** is enough for temporary per-session infrastructure. No Postgres, no S3 dependency, no Kubernetes.
-- **Docker Compose on one VM** matches the product model: create a box, record, download, destroy.
+- **SQLite + local disk** is enough for v1. Keep durable session and participant state in the control plane; keep only upload-local state on the temporary session server.
+- **Docker Compose on one VM** still matches the temporary server model. The control plane can run on a laptop or a cheap VPS.
 
 ## implementation notes
 
 - Record **browser-native WebM chunks first**. Do not fight MP4/final packaging in the critical path.
+- Mint stable participant IDs in the control plane and sync the minimum session/participant snapshot to the temporary server.
 - Persist upload progress per chunk so refresh/reconnect resumes instead of restarting.
 - Store an append-only manifest per track so incomplete uploads are visible and recoverable.
 - Use signed join tokens with roles: host can start/stop recording; guest can only join.

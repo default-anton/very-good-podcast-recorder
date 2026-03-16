@@ -16,8 +16,9 @@ For this product, unit tests are necessary but insufficient. The recording path 
 
 The first harness should run the **real local stack**, not mocks:
 
-- frontend app
-- session API / upload service
+- control plane web app + API
+- browser session app
+- temporary session API / upload service
 - LiveKit
 - SQLite
 - local disk storage
@@ -32,7 +33,7 @@ Use Playwright to launch the browsers with deterministic fake media devices so t
 The harness should perform this flow:
 
 1. start the local stack
-2. create a session and join URLs/tokens
+2. create a session, participant records, and join URLs/tokens through the control plane
 3. launch host and guest browsers
 4. verify all participants join the same live session
 5. host starts recording
@@ -48,7 +49,7 @@ The harness should perform this flow:
 Every run should produce text-first artifacts that an agent can inspect without video review:
 
 - harness summary JSON with pass/fail plus per-participant status
-- structured app and server logs with session and participant IDs
+- structured control-plane, app, and server logs with session and participant IDs
 - session manifest showing expected participants, tracks, chunk counts, and final status
 - per-track upload manifest showing append order and any resume/retry events
 - artifact listing for the final downloadable session folder

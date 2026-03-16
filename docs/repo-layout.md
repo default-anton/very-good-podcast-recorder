@@ -2,31 +2,31 @@
 
 ## recommendation
 
-Keep one repo with one web app, one Go service, and one end-to-end harness.
+Keep one repo with one persistent control plane, one temporary session service, and one end-to-end harness.
 
 Do **not** introduce workspaces, shared packages, or extra services until duplication or scale forces it.
 
 ```text
 .
 ├── cmd/
-│   └── sessiond/         # Go entrypoint: session API + upload ingest
+│   ├── controlplane/     # Go entrypoint: host control plane API + provisioning
+│   └── sessiond/         # Go entrypoint: temporary session API + upload ingest
 ├── internal/
 │   ├── artifacts/        # session manifests, download assembly, file layout
 │   ├── auth/             # signed join tokens, roles
+│   ├── controlplane/     # sessions, participants, provisioning state
 │   ├── recordings/       # recording lifecycle, track state
-│   ├── sessions/         # session creation, participant identity, state
+│   ├── sessions/         # temporary session state synced from control plane
 │   └── uploads/          # chunk ingest, resume, retry bookkeeping
 ├── web/
-│   ├── src/
-│   │   ├── app/          # app shell, providers, routing
-│   │   ├── features/     # join, room, recording, uploads
-│   │   └── lib/          # thin UI/client helpers
+│   ├── control/          # host control plane web app
+│   ├── session/          # browser join/room/recording app
 │   └── tests/
 ├── e2e/
 │   ├── scenarios/        # happy path, reconnect, upload stall
 │   └── fixtures/         # fake media, deterministic inputs
 ├── deploy/
-│   ├── compose.yaml      # local stack + temp-server packaging
+│   ├── compose.yaml      # local stack + control-plane/temp-session packaging
 │   ├── caddy/
 │   ├── coturn/
 │   └── livekit/
@@ -38,9 +38,9 @@ Do **not** introduce workspaces, shared packages, or extra services until duplic
 ## rules
 
 - `cmd/` stays thin. Business logic lives under `internal/`.
-- `web/` owns browser UX and browser-side recording/upload logic. Keep feature code grouped by user workflow.
+- `web/` owns both browser surfaces: the host control plane and the participant session app.
 - `e2e/` is part of the product, not optional test polish.
-- `deploy/` only contains what is required to boot one temporary session server.
+- `deploy/` only contains what is required to boot the persistent control plane and one temporary session server.
 - `scripts/` is the public interface for humans and CI. Prefer a few stable commands over many ad hoc ones.
 
 ## avoid for now

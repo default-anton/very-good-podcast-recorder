@@ -21,7 +21,7 @@ See `docs/feedback-loop.md` for the quality bar and tool choices.
 **Must ship:**
 
 - initial repo structure in place, aligned with `docs/repo-layout.md`
-- initial setup for `web/`, `cmd/sessiond/`, `e2e/`, `deploy/`, and `scripts/`
+- initial setup for `web/control/`, `web/session/`, `cmd/controlplane/`, `cmd/sessiond/`, `e2e/`, `deploy/`, and `scripts/`
 - formatter + linter wired into stable local commands
 - `prek` pre-commit hooks for fast changed-file checks
 - initial unit-test command shape
@@ -43,7 +43,7 @@ See `docs/feedback-loop.md` for the quality bar and tool choices.
 **Must ship:**
 
 - local stack boots with one command
-- host creates a session locally
+- host uses the control plane to create a session and participant records locally
 - host and 2 guests join via browser URLs
 - all 3 participants appear in the same live room
 - harness emits JSON showing join success by participant
@@ -75,7 +75,7 @@ See `docs/feedback-loop.md` for the quality bar and tool choices.
 
 - one participant produces more than one chunk
 - uploaded chunks and manifest agree
-- final artifact can be listed and inspected from the CLI
+- final artifact can be listed and inspected from control-plane metadata and local manifests
 
 **Not yet:**
 
