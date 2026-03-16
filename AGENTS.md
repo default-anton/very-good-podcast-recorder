@@ -4,6 +4,8 @@ very-good-podcast-recorder is an open-source remote podcast recorder: browser-ba
 
 `README.md` is the current product and scope source of truth.
 
+If you are making architecture, infrastructure, or stack decisions, read `docs/architecture.md` first.
+
 ## Current state
 
 - Repo is bootstrap-only right now. Keep the first implementation simple and easy to evolve.
