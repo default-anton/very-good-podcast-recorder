@@ -6,6 +6,7 @@ Related docs:
 - `docs/milestones.md`
 - `docs/feedback-loop.md`
 - `docs/testing.md`
+- `docs/identity.md`
 
 ## recommendation
 
@@ -51,7 +52,7 @@ Keep host orchestration out of the media-critical path: the persistent control p
 - Mint stable participant IDs in the control plane and sync the minimum session/participant snapshot to the temporary server.
 - Persist upload progress per chunk so refresh/reconnect resumes instead of restarting.
 - Store an append-only manifest per track so incomplete uploads are visible and recoverable.
-- Use signed join tokens with roles: host can start/stop recording; guest can only join.
+- Use 2 bearer join links per session (host, guest) plus stable participant seats and per-browser claim secrets for reconnect and takeover handling.
 - Make the download artifact explicit: session folder + manifest, not a “magic” post-process pipeline.
 
 ## non-goals for v1
