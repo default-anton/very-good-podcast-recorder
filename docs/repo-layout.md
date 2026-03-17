@@ -28,7 +28,6 @@ Do **not** introduce workspaces, shared packages, or extra services until duplic
 ├── deploy/
 │   ├── compose.yaml      # local stack + control-plane/temp-session packaging
 │   ├── caddy/
-│   ├── coturn/
 │   └── livekit/
 ├── scripts/              # stable one-command dev and CI entrypoints
 ├── testdata/             # backend fixtures and golden manifests

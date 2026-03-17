@@ -7,6 +7,7 @@ Related docs:
 - `docs/feedback-loop.md`
 - `docs/testing.md`
 - `docs/identity.md`
+- `docs/database-schema.md`
 
 ## recommendation
 
@@ -32,7 +33,7 @@ Keep host orchestration out of the media-critical path: the persistent control p
 - **session-local state**: SQLite manifests + local disk for upload progress and track status, keyed by control-plane session/participant IDs
 - **file storage**: local disk on the session VM for v1, organized by session/participant/track/chunk
 - **edge / tls**: Caddy
-- **turn / nat traversal**: coturn
+- **turn / nat traversal**: LiveKit embedded TURN by default; external TURN only if we hit a concrete requirement
 - **packaging**: Docker Compose for the temporary session server; keep the control plane simple enough to run locally or on a small Ubuntu VM
 - **provisioning**: start with one cloud target only (Hetzner or DigitalOcean), add others later
 - **tests**: Go test for backend, Vitest for frontend units, Playwright for host/guest smoke flows
