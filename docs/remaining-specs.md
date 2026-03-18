@@ -4,6 +4,7 @@ Related docs:
 
 - `docs/architecture.md`
 - `docs/identity.md`
+- `docs/session-lifecycle.md`
 - `docs/recording-control-protocol.md`
 - `docs/recording-upload-protocol.md`
 - `docs/testing.md`
@@ -13,33 +14,22 @@ Related docs:
 
 Do not split milestone 1+ feature work too broadly until the remaining contracts below are written down.
 
+The session state machine now exists in `docs/session-lifecycle.md`.
+
 The recording control contract now exists in `docs/recording-control-protocol.md`.
 
 The recording/upload contract now exists in `docs/recording-upload-protocol.md`.
 
 The next thin specs to lock down are:
 
-1. session state machine
-2. artifact manifest format
-3. local dev/runtime contract
-4. minimal v1 UX contract
-5. basic non-functional targets
+1. artifact manifest format
+2. local dev/runtime contract
+3. minimal v1 UX contract
+4. basic non-functional targets
 
 Keep them short. Tables and example JSON beat prose.
 
-## 1. session state machine
-
-Define the allowed states and transitions for:
-
-- session lifecycle
-- seat claim lifecycle
-- recording lifecycle
-- upload/draining lifecycle
-- terminal failure states
-
-This is the contract that keeps frontend, backend, and harness work aligned.
-
-## 2. artifact manifest format
+## 1. artifact manifest format
 
 The docs already say "session folder + manifest." Now lock the shape down.
 
@@ -53,7 +43,7 @@ Define:
 
 Without this, the harness cannot assert correctness cleanly.
 
-## 3. local dev/runtime contract
+## 2. local dev/runtime contract
 
 For milestone 0 and early milestone 1 work, define the boring runtime details up front:
 
@@ -66,7 +56,7 @@ For milestone 0 and early milestone 1 work, define the boring runtime details up
 
 This is what makes parallel development actually move.
 
-## 4. minimal v1 UX contract
+## 3. minimal v1 UX contract
 
 Do not overdesign. Do define the minimum workflow.
 
@@ -91,7 +81,7 @@ Also define:
 - guest-visible error states
 - minimum device/setup UI
 
-## 5. basic non-functional targets
+## 4. basic non-functional targets
 
 Set a few concrete targets so "performance first" means something:
 
@@ -121,6 +111,5 @@ Before assigning milestone 1+ work in parallel, write the thin specs above. Othe
 
 - frontend/backend contracts
 - harness assertions
-- reconnect semantics
 - artifact format
 - what "done" means
