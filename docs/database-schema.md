@@ -153,6 +153,12 @@ create table recording_tracks (
   segment_index integer not null check (segment_index >= 0),
                                         -- 0-based segment number per seat + kind. Bump when reconnect/restart creates a new segment.
   mime_type text not null,              -- Browser-reported container/codec string, e.g. audio/webm or video/webm.
+  capture_start_offset_us integer not null check (capture_start_offset_us >= 0),
+                                        -- Browser-reported segment start offset from the session recording epoch, measured from a local monotonic clock mapping.
+  capture_end_offset_us integer check (capture_end_offset_us is null or capture_end_offset_us >= capture_start_offset_us),
+                                        -- Browser-reported segment end offset from the same recording epoch. Null until finish is accepted.
+  clock_sync_uncertainty_us integer not null check (clock_sync_uncertainty_us >= 0),
+                                        -- Best-effort bound on the browser's mapping from local monotonic time to the shared recording epoch.
   state text not null check (state in ('recording', 'uploading', 'complete', 'abandoned', 'failed')),
                                         -- recording=chunks still expected; uploading=local capture stopped and backlog is draining; complete=all expected chunks stored; abandoned=seat disappeared before upload completion; failed=terminal server-side error.
   expected_chunk_count integer check (expected_chunk_count >= 0),
@@ -209,6 +215,7 @@ One row means one seat's one logical media track segment:
 - one `participant_seat_id`
 - one `kind` (`audio` or `video`)
 - one `segment_index`
+- one capture offset range relative to the shared session recording epoch
 
 Create a `recording_tracks` row when the browser starts a new local recorder for that seat + kind.
 
@@ -219,12 +226,12 @@ Typical cases:
 
 Update `recording_tracks` only on lifecycle changes:
 
-- create with `state = 'recording'`
-- when local capture stops, set `expected_chunk_count`
+- create with `capture_start_offset_us`, `clock_sync_uncertainty_us`, and `state = 'recording'`
+- when local capture stops, set `expected_chunk_count` and `capture_end_offset_us`
 - if chunks are still draining, move to `state = 'uploading'`
 - when all expected chunks are durably present, move to `state = 'complete'`
 - if the segment will never finish cleanly after disconnect/restart, move to `state = 'abandoned'`
-- if the server hits a terminal integrity/storage error, move to `state = 'failed'`
+- if the server hits a terminal durability/storage reconciliation error, move to `state = 'failed'`
 
 Do **not** use `recording_tracks` as the per-chunk source of truth. That is what `track_chunks` is for.
 

@@ -51,7 +51,7 @@ Every run should produce text-first artifacts that an agent can inspect without 
 - harness summary JSON with pass/fail plus per-participant status
 - structured control-plane, app, session-server, and LiveKit-related logs with session and participant IDs
 - explicit mapping of seat ID → LiveKit participant identity in the summary or logs
-- session manifest showing expected participants, tracks, chunk counts, and final status
+- session manifest showing `recording_epoch_id`, expected participants, tracks, capture offset ranges, chunk counts, and final status
 - per-track upload manifest showing append order and any resume/retry events
 - artifact listing for the final downloadable session folder
 
@@ -82,6 +82,7 @@ Pass criteria:
 - all expected local tracks were created
 - each track uploaded more than one chunk
 - session manifest marks all expected tracks complete
+- segment capture offsets are present and plausible for all tracks
 - final artifact layout matches the manifest
 
 ### 2. guest reconnect during recording
@@ -104,6 +105,7 @@ Pass criteria:
 - pre-disconnect chunks remain present
 - post-reconnect chunks append cleanly
 - final manifest shows one coherent track timeline or an explicit, non-silent split that tooling can understand
+- segment capture offsets stay monotonic and line up on the shared session recording timeline
 
 ### 3. upload stall and resume
 

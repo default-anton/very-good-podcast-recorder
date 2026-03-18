@@ -6,6 +6,7 @@ Related docs:
 - `docs/database-schema.md`
 - `docs/testing.md`
 - `docs/identity.md`
+- `docs/recording-control-protocol.md`
 
 ## recommendation
 
@@ -59,6 +60,14 @@ Rules:
 - upload requests without an active claimed seat fail with `401`
 - a browser may upload only for its own claimed seat
 
+## api versioning
+
+All endpoint examples in this doc use `/api/v1/...`.
+
+Incompatible wire changes must ship under a new versioned path, for example `/api/v2/...`.
+
+Do **not** hide breaking changes behind optional fields or state-dependent behavior.
+
 ## client obligations
 
 Before starting a new recorder segment, the browser must generate and persist a new opaque `recording_track_id`.
@@ -77,11 +86,34 @@ The browser also chooses `segment_index` per seat + kind:
 
 If a reconnect/reload starts a new recorder, it must use a new `recording_track_id` and the next `segment_index`.
 
+## capture timing model
+
+The shared sync anchor is the **session recording epoch**.
+
+For v1, that epoch is the moment the session transitions into `recording`. The browser learns `recording_epoch_id` and obtains its local epoch mapping through `docs/recording-control-protocol.md`.
+
+Rules:
+
+- the browser measures capture timing with a **monotonic local clock**, i.e. `performance.now()`
+- the browser maps that local monotonic clock onto the session recording epoch using a clock-sync estimate from the session server
+- the browser sends **segment-level capture offsets** relative to the session recording epoch
+- the server stores those offsets as recording metadata
+- server receive time and upload order are **not** sync metadata
+- wall-clock timestamps like `Date.now()` are **not** the source of truth for cross-participant alignment
+
+For v1, the contract stores timing at the **track segment** level:
+
+- `capture_start_offset_us`
+- `capture_end_offset_us`
+- `clock_sync_uncertainty_us`
+
+Per-chunk timing is intentionally out of the critical path for v1. If we later need finer export alignment, we can derive it from container timestamps or add explicit chunk timing in a future version.
+
 ## endpoints
 
 ### 1. start track
 
-`POST /api/recording-tracks/start`
+`POST /api/v1/recording-tracks/start`
 
 Creates or replays one logical track segment for the currently claimed seat.
 
@@ -90,18 +122,25 @@ Creates or replays one logical track segment for the currently claimed seat.
 ```json
 {
   "recording_track_id": "trk_01hr...",
+  "recording_epoch_id": "re_01hr...",
   "kind": "audio",
   "segment_index": 0,
-  "mime_type": "audio/webm"
+  "mime_type": "audio/webm",
+  "capture_start_offset_us": 1250000,
+  "clock_sync_uncertainty_us": 8000
 }
 ```
 
 ### request rules
 
 - `recording_track_id` is client-generated and unique for this segment
+- `recording_epoch_id` must equal the current session `recording_epoch_id`
 - `kind` must be `audio` or `video`
 - `segment_index` must be `>= 0`
 - `mime_type` must be the browser recorder mime type for the segment
+- `capture_start_offset_us` must be `>= 0`
+- `clock_sync_uncertainty_us` must be `>= 0`
+- `capture_start_offset_us` must be derived from the browser's monotonic clock mapped onto the current session recording epoch
 - allowed only when `session_snapshot.recording_state = 'recording'`
 
 ### idempotency rules
@@ -124,8 +163,13 @@ On first success, the server creates `recording_tracks` with:
 - `kind`
 - `segment_index`
 - `mime_type`
+- `capture_start_offset_us`
+- `capture_end_offset_us = null`
+- `clock_sync_uncertainty_us`
 - `state = 'recording'`
 - `expected_chunk_count = null`
+
+The server must also validate that the request `recording_epoch_id` matches the current session `recording_epoch_id`. The success response echoes that current epoch id.
 
 ### success response
 
@@ -135,18 +179,22 @@ On first success, the server creates `recording_tracks` with:
 ```json
 {
   "recording_track_id": "trk_01hr...",
+  "recording_epoch_id": "re_01hr...",
   "participant_seat_id": "seat_01hr...",
   "session_id": "sess_01hr...",
   "kind": "audio",
   "segment_index": 0,
   "mime_type": "audio/webm",
+  "capture_start_offset_us": 1250000,
+  "capture_end_offset_us": null,
+  "clock_sync_uncertainty_us": 8000,
   "state": "recording"
 }
 ```
 
 ### 2. upload chunk
 
-`PUT /api/recording-tracks/{recording_track_id}/chunks/{chunk_index}`
+`PUT /api/v1/recording-tracks/{recording_track_id}/chunks/{chunk_index}`
 
 Uploads one durable chunk for a started track.
 
@@ -177,6 +225,12 @@ The server must not insert a `track_chunks` row until it has:
 2. computed the actual byte size and SHA-256 digest
 3. verified them against `Content-Length` and `X-Chunk-Sha256`
 4. committed the bytes to the final `storage_path`
+
+If byte size or digest verification fails:
+
+- reject the request
+- do **not** insert a `track_chunks` row
+- do **not** move the track to `failed` just because one client request was bad
 
 Then insert `track_chunks` with:
 
@@ -228,7 +282,7 @@ or
 
 ### 3. finish track
 
-`POST /api/recording-tracks/{recording_track_id}/finish`
+`POST /api/v1/recording-tracks/{recording_track_id}/finish`
 
 Declares that the browser will send no more chunks for this track segment.
 
@@ -236,7 +290,8 @@ Declares that the browser will send no more chunks for this track segment.
 
 ```json
 {
-  "expected_chunk_count": 12
+  "expected_chunk_count": 12,
+  "capture_end_offset_us": 27234567
 }
 ```
 
@@ -244,14 +299,16 @@ Declares that the browser will send no more chunks for this track segment.
 
 - track must exist and belong to the currently claimed seat
 - `expected_chunk_count` must be `>= 0`
+- `capture_end_offset_us` must be `>= capture_start_offset_us`
+- `capture_end_offset_us` must be derived from the browser's monotonic clock mapped onto the current session recording epoch
 - allowed when track state is `recording` or `uploading`
 - allowed when session state is `recording` or `draining`
 
 ### idempotency rules
 
-If `finish` is replayed with the same `expected_chunk_count`, return success.
+If `finish` is replayed with the same `expected_chunk_count` and the same `capture_end_offset_us`, return success.
 
-If `finish` is replayed with a different `expected_chunk_count`, return `409`.
+If `finish` is replayed with a different `expected_chunk_count` or a different `capture_end_offset_us`, return `409`.
 
 ### state transition rules
 
@@ -259,6 +316,7 @@ On `finish`:
 
 - if any existing `track_chunks.chunk_index >= expected_chunk_count`, return `409`
 - set `recording_tracks.expected_chunk_count`
+- set `recording_tracks.capture_end_offset_us`
 - if all chunk indices `0..expected_chunk_count-1` are already present, set `state = 'complete'`
 - otherwise set `state = 'uploading'`
 
@@ -278,6 +336,9 @@ When the final missing chunk arrives, move `recording_tracks.state` from `upload
 ```json
 {
   "recording_track_id": "trk_01hr...",
+  "recording_epoch_id": "re_01hr...",
+  "capture_start_offset_us": 1250000,
+  "capture_end_offset_us": 27234567,
   "expected_chunk_count": 12,
   "received_chunk_count": 10,
   "state": "uploading"
@@ -289,6 +350,9 @@ or
 ```json
 {
   "recording_track_id": "trk_01hr...",
+  "recording_epoch_id": "re_01hr...",
+  "capture_start_offset_us": 1250000,
+  "capture_end_offset_us": 27234567,
   "expected_chunk_count": 12,
   "received_chunk_count": 12,
   "state": "complete"
@@ -317,13 +381,15 @@ Typical causes:
 
 ### `failed`
 
-Move a track to `failed` when the server hits a terminal integrity or storage problem, for example:
+Move a track to `failed` only when the server hits a terminal durability or reconciliation problem after accepting work, for example:
 
-- chunk digest mismatch after receive
 - final storage commit failed
 - manifest/database write failed after durable file write and the server cannot safely reconcile it
+- on-disk bytes and manifest state diverged and cleanup cannot prove a safe recovery path
 
 `failed` means operator attention required. Do not silently downgrade it to `abandoned`.
+
+Bad client requests are **not** `failed`. For example, a bad digest header should reject that request without terminally poisoning the track.
 
 ## session-level rules
 
@@ -352,11 +418,11 @@ Use small, explicit errors.
 
 ### status codes
 
-- `400 Bad Request` → malformed JSON, bad enum, bad header, negative index, invalid SHA format
+- `400 Bad Request` → malformed JSON, bad enum, bad header, negative index, invalid SHA format, digest mismatch, declared length mismatch
 - `401 Unauthorized` → no valid claimed seat
 - `403 Forbidden` → claimed seat does not own the target track
 - `404 Not Found` → target track does not exist
-- `409 Conflict` → idempotency mismatch, duplicate segment tuple, duplicate chunk index with different bytes, invalid state transition
+- `409 Conflict` → idempotency mismatch, stale or mismatched `recording_epoch_id`, duplicate segment tuple, duplicate chunk index with different bytes, invalid state transition
 - `413 Payload Too Large` → chunk exceeds server limit
 - `500 Internal Server Error` → unexpected server failure
 
@@ -377,24 +443,27 @@ Use actionable codes/messages. Never log or return raw claim secrets.
 
 For one participant seat:
 
-1. browser starts local audio recorder
-2. browser `POST /api/recording-tracks/start` for audio segment `0`
-3. browser starts local video recorder
-4. browser `POST /api/recording-tracks/start` for video segment `0`
-5. browser uploads chunks with `PUT /chunks/{chunk_index}` as they are produced
-6. host stops recording; session moves to `draining`
-7. browser calls `finish` for audio and video with final `expected_chunk_count`
-8. remaining backlog uploads continue during `draining`
-9. each track becomes `complete` when all expected chunks are present
-10. session becomes `stopped` when all tracks are terminal
+1. browser learns the current `recording_epoch_id` and completes clock sync through `docs/recording-control-protocol.md`
+2. browser starts local audio recorder
+3. browser `POST /api/v1/recording-tracks/start` for audio segment `0`
+4. browser starts local video recorder
+5. browser `POST /api/v1/recording-tracks/start` for video segment `0`
+6. browser uploads chunks with `PUT /api/v1/recording-tracks/{recording_track_id}/chunks/{chunk_index}` as they are produced
+7. host stops recording; session moves to `draining`
+8. browser calls `finish` for audio and video with final `expected_chunk_count` and `capture_end_offset_us`
+9. remaining backlog uploads continue during `draining`
+10. each track becomes `complete` when all expected chunks are present
+11. session becomes `stopped` when all tracks are terminal
 
 ## reconnect example
 
 If one browser reloads during recording:
 
 - unfinished audio/video segment `0` may later become `abandoned`
+- rejoined browser reruns clock sync for the current `recording_epoch_id`
 - rejoined browser creates fresh audio/video tracks with `segment_index = 1`
 - uploads continue into the new segment rows
+- each segment keeps its own capture offset range relative to the same session recording epoch
 - the final manifest shows an explicit split, not a silent overwrite
 
 ## non-goals for v1
@@ -403,3 +472,4 @@ If one browser reloads during recording:
 - server-side mux/transcode as part of recording success
 - multiple active devices uploading for one seat at the same time
 - freeform client mutation of server-owned terminal states
+- per-chunk capture timing in the upload contract

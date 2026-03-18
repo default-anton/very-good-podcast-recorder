@@ -81,6 +81,7 @@ Use the LiveKit JS SDK from our session app. Do **not** build the product on top
 - Map durable control-plane seat identity into LiveKit tokens and room identity; do not let LiveKit identity become the only source of truth.
 - Persist upload progress per chunk so refresh/reconnect resumes instead of restarting.
 - Store an append-only manifest per track so incomplete uploads are visible and recoverable.
+- Record browser-monotonic capture offsets relative to the session recording epoch as sync metadata. Do **not** treat server receive time as track timing.
 - Use 2 bearer join links per session (host, guest) plus stable participant seats and per-browser claim secrets for reconnect and takeover handling.
 - Keep LiveKit room state separate from local recording state and upload state. Failure in one path must stay visible and recoverable in the others.
 - Do not use LiveKit server-side recording or egress as the primary recording source for v1.
