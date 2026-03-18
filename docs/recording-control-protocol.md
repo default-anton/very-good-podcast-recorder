@@ -5,6 +5,8 @@ Related docs:
 - `docs/architecture.md`
 - `docs/database-schema.md`
 - `docs/identity.md`
+- `docs/seat-claim-protocol.md`
+- `docs/session-lifecycle.md`
 - `docs/recording-upload-protocol.md`
 - `docs/testing.md`
 
@@ -23,7 +25,8 @@ Keep real-time delivery optional. The hard contract is request/response JSON. Br
 
 This doc defines the browser ↔ session-server contract for:
 
-- session recording state visibility
+- session recording phase visibility
+- session recording health visibility
 - host recording start/stop control
 - the shared recording epoch id
 - browser clock sync used by `docs/recording-upload-protocol.md`
@@ -39,7 +42,7 @@ It does **not** define:
 
 All endpoints are same-origin session-server endpoints.
 
-Authentication uses the active claimed-seat cookie from the join/rejoin flow.
+Authentication uses the active claimed-seat cookie from the join/rejoin flow defined in `docs/seat-claim-protocol.md`.
 
 Rules:
 
@@ -58,7 +61,7 @@ Rules:
 
 - when recording starts, the server mints one opaque `recording_epoch_id`
 - the shared recording zero point is the moment the server accepts the `waiting -> recording` transition
-- `recording_epoch_id` stays stable through `recording`, `draining`, and `stopped`
+- once minted, `recording_epoch_id` stays stable through `recording`, `draining`, `stopped`, and `failed`
 - before recording starts, `recording_epoch_id` is `null`
 - browsers must discard any cached local epoch mapping if the observed `recording_epoch_id` changes
 
@@ -72,6 +75,8 @@ Rules:
 
 Returns the current session recording snapshot for the currently claimed seat.
 
+`recording_state` is the recording phase. `recording_health` is the current trust level of the salvage set.
+
 ### success response
 
 ```json
@@ -80,6 +85,7 @@ Returns the current session recording snapshot for the currently claimed seat.
   "participant_seat_id": "seat_01hr...",
   "role": "guest",
   "recording_state": "waiting",
+  "recording_health": "healthy",
   "recording_epoch_id": null,
   "recording_epoch_started_at": null
 }
@@ -93,6 +99,7 @@ or
   "participant_seat_id": "seat_01hr...",
   "role": "host",
   "recording_state": "recording",
+  "recording_health": "healthy",
   "recording_epoch_id": "re_01hr...",
   "recording_epoch_started_at": "2026-03-17T18:02:14.123456Z"
 }
@@ -101,6 +108,8 @@ or
 ### response rules
 
 - `role` reflects the claimed seat role, not a client-provided hint
+- `recording_state` is the phase; `recording_health` is the artifact trust level
+- `recording_health = 'degraded'` means the run is damaged but still being salvaged under the current phase rules
 - `recording_epoch_id` and `recording_epoch_started_at` are both `null` before recording starts
 - once recording starts, both remain set for the rest of the session lifecycle
 
@@ -124,6 +133,7 @@ No body.
 On first success, the server must:
 
 - transition `session_snapshot.recording_state` from `waiting` to `recording`
+- keep `session_snapshot.recording_health = 'healthy'`
 - mint `recording_epoch_id`
 - set `recording_epoch_started_at`
 - start serving clock-sync responses for that epoch immediately
@@ -143,6 +153,7 @@ If the session is already in `draining`, `stopped`, or `failed`, return `409`. v
 {
   "session_id": "sess_01hr...",
   "recording_state": "recording",
+  "recording_health": "healthy",
   "recording_epoch_id": "re_01hr...",
   "recording_epoch_started_at": "2026-03-17T18:02:14.123456Z"
 }
@@ -163,6 +174,7 @@ No body.
 - caller must own any claimed seat for this session
 - allowed only when `recording_epoch_id` exists
 - allowed when `recording_state` is `recording` or `draining`
+- `recording_health` may be `healthy` or `degraded`; degraded runs still need clock sync for salvageable ongoing capture
 
 ### success response
 
@@ -170,6 +182,7 @@ No body.
 {
   "recording_epoch_id": "re_01hr...",
   "recording_state": "recording",
+  "recording_health": "healthy",
   "recording_epoch_started_at": "2026-03-17T18:02:14.123456Z",
   "recording_epoch_elapsed_us": 582034,
   "server_processing_time_us": 900
@@ -219,7 +232,7 @@ No body.
 
 ### successful behavior
 
-On first success while the session is `recording`, the server must transition `session_snapshot.recording_state` to `draining`.
+On first success while the session is `recording`, the server must transition `session_snapshot.recording_state` to `draining` and preserve the current `recording_health`.
 
 ### idempotency rules
 
@@ -237,6 +250,7 @@ If the session is `failed`, return `409`.
 {
   "session_id": "sess_01hr...",
   "recording_state": "draining",
+  "recording_health": "degraded",
   "recording_epoch_id": "re_01hr...",
   "recording_epoch_started_at": "2026-03-17T18:02:14.123456Z"
 }
@@ -244,14 +258,21 @@ If the session is `failed`, return `409`.
 
 ## session state rules
 
-This doc only relies on these recording-state transitions:
+This doc relies on the hosted recording lifecycle locked in `docs/session-lifecycle.md`.
+
+The relevant phase transitions are:
 
 - `waiting -> recording` on accepted host `start`
 - `recording -> draining` on accepted host `stop`
-- `draining -> stopped` when upload work becomes terminal per `docs/recording-upload-protocol.md`
-- any state may move to `failed` on terminal server failure
+- `draining -> stopped` when all started tracks are terminal and the server can still expose a truthful final salvage manifest
+- `waiting | recording | draining -> failed` on session-level terminal recording failure
 
-The session server owns those state transitions. Browsers only request `start` and `stop`.
+The relevant health transitions are:
+
+- `healthy -> degraded` on localized track/session damage that is still salvageable
+- `healthy | degraded -> failed` on unrecoverable session-level failure
+
+The session server owns `healthy -> degraded`, `-> stopped`, and `-> failed`. Browsers only request `start` and `stop`.
 
 ## error contract
 
@@ -286,7 +307,7 @@ Use the same error shape as `docs/recording-upload-protocol.md`.
 7. browsers upload track segments using `docs/recording-upload-protocol.md`
 8. host calls `POST /api/v1/session-recording/stop`
 9. session remains `draining` until uploads reach terminal state
-10. session becomes `stopped`
+10. session becomes `stopped`; final `recording_health` tells the host whether the artifact set is clean (`healthy`) or salvage-only (`degraded`)
 
 ## non-goals for v1
 

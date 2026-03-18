@@ -40,6 +40,8 @@ All hosts are equal inside the session server. There is no separate `cohost` or 
 
 ## join and rejoin
 
+This doc defines the identity model and permission rules. The final seat-claim state machine and wire contract live in `docs/seat-claim-protocol.md`.
+
 Invite links:
 
 - `/join/{session_id}/host?k=...`
@@ -134,7 +136,9 @@ Keep this doc focused on identity, join, rejoin, takeover, and permission semant
 
 ## control plane → session server sync
 
-For the single `session_id` hosted by a given temporary server, sync the **complete current auth + roster snapshot for that one session** when the server is created, then whenever the roster or join keys change.
+For the single `session_id` hosted by a given temporary server, sync the **complete current auth + roster snapshot for that one session** when the server is created.
+
+In v1, keep the active session's **auth model** static once the control-plane session becomes `active` per `docs/session-lifecycle.md`, but keep **authentication itself** live for the whole hosted run. The session server must continue validating join links, seat claims, reconnects, and takeovers for already-invited seats during `waiting`, `recording`, and `draining`.
 
 Sync:
 

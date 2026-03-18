@@ -7,6 +7,8 @@ Related docs:
 - `docs/feedback-loop.md`
 - `docs/testing.md`
 - `docs/identity.md`
+- `docs/seat-claim-protocol.md`
+- `docs/session-lifecycle.md`
 - `docs/database-schema.md`
 - `docs/recording-control-protocol.md`
 - `docs/recording-upload-protocol.md`

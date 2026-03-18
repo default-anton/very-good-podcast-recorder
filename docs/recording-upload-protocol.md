@@ -6,6 +6,8 @@ Related docs:
 - `docs/database-schema.md`
 - `docs/testing.md`
 - `docs/identity.md`
+- `docs/seat-claim-protocol.md`
+- `docs/session-lifecycle.md`
 - `docs/recording-control-protocol.md`
 
 ## recommendation
@@ -41,13 +43,13 @@ It does **not** define:
 - LiveKit/media room behavior
 - post-process export jobs
 
-It starts once the browser already owns a seat claim and the session server is in `session_snapshot.recording_state = 'recording'`.
+It starts once the browser already owns a seat claim and the session server has entered the recording run (`recording_state = 'recording'`). After that, localized failures may degrade the run without immediately stopping unaffected uploads.
 
 ## auth
 
 All recording/upload endpoints are same-origin session-server endpoints.
 
-Authentication uses the active seat claim from join/rejoin flow:
+Authentication uses the active seat claim from the join/rejoin flow defined in `docs/seat-claim-protocol.md`:
 
 - browser joins and claims a seat
 - session server sets the secure claim cookie
@@ -142,6 +144,7 @@ Creates or replays one logical track segment for the currently claimed seat.
 - `clock_sync_uncertainty_us` must be `>= 0`
 - `capture_start_offset_us` must be derived from the browser's monotonic clock mapped onto the current session recording epoch
 - allowed only when `session_snapshot.recording_state = 'recording'`
+- `recording_health` may be `healthy` or `degraded`; degraded runs still allow new segment starts while the phase remains `recording`
 
 ### idempotency rules
 
@@ -214,6 +217,7 @@ Raw chunk bytes.
 - track must exist and belong to the currently claimed seat
 - allowed when track state is `recording` or `uploading`
 - allowed when session state is `recording` or `draining`
+- `recording_health` may be `healthy` or `degraded`; degraded runs still accept unaffected track uploads
 - if `finish` was already accepted, `chunk_index` must be `< expected_chunk_count`
 - chunk order may arrive out of order; completeness is determined by indices, not arrival time
 
@@ -303,6 +307,7 @@ Declares that the browser will send no more chunks for this track segment.
 - `capture_end_offset_us` must be derived from the browser's monotonic clock mapped onto the current session recording epoch
 - allowed when track state is `recording` or `uploading`
 - allowed when session state is `recording` or `draining`
+- `recording_health` may be `healthy` or `degraded`; degraded runs still allow unaffected tracks to finish cleanly
 
 ### idempotency rules
 
@@ -389,11 +394,13 @@ Move a track to `failed` only when the server hits a terminal durability or reco
 
 `failed` means operator attention required. Do not silently downgrade it to `abandoned`.
 
+A track-level `failed` does **not** automatically hard-stop the whole hosted recording run. It must at least move the session to `recording_health = 'degraded'`, and it moves the full session to `recording_state = 'failed'` only when the broader salvage set is no longer trustworthy per `docs/session-lifecycle.md`.
+
 Bad client requests are **not** `failed`. For example, a bad digest header should reject that request without terminally poisoning the track.
 
 ## session-level rules
 
-`session_snapshot.recording_state` gates the protocol:
+`session_snapshot.recording_state` gates the protocol phase:
 
 - `waiting` → reject `start`, `chunk`, `finish`
 - `recording` → allow `start`, `chunk`, `finish`
@@ -401,16 +408,25 @@ Bad client requests are **not** `failed`. For example, a bad digest header shoul
 - `stopped` → reject `start`, `chunk`, `finish`
 - `failed` → reject `start`, `chunk`, `finish`
 
+`session_snapshot.recording_health` tells the host whether the salvage set is still clean:
+
+- `healthy` → normal run
+- `degraded` → keep salvaging unaffected work, but never present the result as clean
+- `failed` → session-level terminal failure; no new work should be accepted because `recording_state` must also be `failed`
+
 State gates apply to **new** mutations.
 
 Exact idempotent replays of already-committed `start`, `chunk`, or `finish` operations must still return success even if the session or track has already moved to a later state.
 
-Recommended session transition:
+Session transition rules are finalized in `docs/session-lifecycle.md`.
 
-1. host starts recording → `recording`
-2. host stops recording → `draining`
-3. all started tracks become terminal (`complete`, `abandoned`, or `failed`) → `stopped`, unless any are `failed`
-4. if any terminal track is `failed`, session may stay `failed` instead of `stopped`
+For this protocol, enforce:
+
+1. host starts recording → `recording + healthy`
+2. host stops recording → `draining`, preserving the current health
+3. if one started track reaches `failed` but the rest of the session is still salvageable, move the session to `recording_health = 'degraded'` and keep accepting unaffected work under the current phase rules
+4. move the session to `recording_state = 'failed'` only when the broader salvage set is no longer trustworthy enough to continue safely
+5. `draining -> stopped` when all started tracks are terminal and the server can still expose a truthful final salvage manifest; final health may be `healthy` or `degraded`
 
 ## error contract
 
@@ -453,7 +469,7 @@ For one participant seat:
 8. browser calls `finish` for audio and video with final `expected_chunk_count` and `capture_end_offset_us`
 9. remaining backlog uploads continue during `draining`
 10. each track becomes `complete` when all expected chunks are present
-11. session becomes `stopped` when all tracks are terminal
+11. session becomes `stopped + healthy` when all tracks are terminal and the final salvage set is clean
 
 ## reconnect example
 
@@ -465,6 +481,25 @@ If one browser reloads during recording:
 - uploads continue into the new segment rows
 - each segment keeps its own capture offset range relative to the same session recording epoch
 - the final manifest shows an explicit split, not a silent overwrite
+
+## degraded-session example
+
+If one participant video track hits a terminal storage failure during recording:
+
+- that track moves to `failed`
+- the hosted recording health moves to `degraded`
+- unaffected tracks keep uploading under the normal phase rules
+- host may still stop recording normally
+- the final session may end as `stopped + degraded` if the server can still produce a truthful salvage manifest
+
+## session-failed example
+
+If the session server can no longer trust the broader salvage set:
+
+- hosted recording moves to `failed + failed`
+- new `start`, `chunk`, and `finish` mutations are rejected
+- exact idempotent replays of already-committed operations still succeed
+- already committed chunks should remain preserved if storage is still readable
 
 ## non-goals for v1
 

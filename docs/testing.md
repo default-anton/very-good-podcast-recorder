@@ -10,7 +10,8 @@ For this product, unit tests are necessary but insufficient. The recording path 
 - the live call stays up
 - each participant records locally
 - chunks upload in the background
-- reconnects and upload interruptions do not silently corrupt the final result
+- reconnects, takeovers, and upload interruptions do not silently corrupt the final result
+- terminal failures stay explicit and inspectable
 
 ## first harness
 
@@ -51,7 +52,7 @@ Every run should produce text-first artifacts that an agent can inspect without 
 - harness summary JSON with pass/fail plus per-participant status
 - structured control-plane, app, session-server, and LiveKit-related logs with session and participant IDs
 - explicit mapping of seat ID → LiveKit participant identity in the summary or logs
-- session manifest showing `recording_epoch_id`, expected participants, tracks, capture offset ranges, chunk counts, and final status
+- session manifest showing `recording_epoch_id`, expected participants, tracks, capture offset ranges, chunk counts, final `recording_state`, and final `recording_health`
 - per-track upload manifest showing append order and any resume/retry events
 - artifact listing for the final downloadable session folder
 
@@ -82,6 +83,7 @@ Pass criteria:
 - all expected local tracks were created
 - each track uploaded more than one chunk
 - session manifest marks all expected tracks complete
+- final session result is `stopped + healthy`
 - segment capture offsets are present and plausible for all tracks
 - final artifact layout matches the manifest
 
@@ -128,6 +130,67 @@ Pass criteria:
 - manifest makes the interruption explicit
 - final uploaded chunk set is complete or the missing range is explicit and detectable
 
+### 4. active seat takeover during recording
+
+Goal: prove one-seat-one-browser ownership holds under explicit takeover.
+
+Flow:
+
+- start from the happy path
+- while one guest is active, launch a second browser on the same role link
+- explicitly take over that same guest seat
+- continue recording long enough to produce post-takeover chunks
+- stop recording and finish uploads
+
+Pass criteria:
+
+- the old and new browser are never both accepted as active owners for the same seat
+- the new browser keeps the same seat ID / LiveKit participant identity
+- the old browser starts failing claim-authenticated requests promptly
+- pre-takeover chunks remain present
+- post-takeover chunks are appended as a new explicit segment or otherwise remain non-silent in the manifest
+- any unfinished pre-takeover segment becomes `abandoned`, not silently overwritten
+
+### 5. localized track failure with continued salvage
+
+Goal: prove one failed track does not hard-stop unaffected recording and upload work.
+
+Flow:
+
+- start from the happy path
+- after at least one track has accepted work, inject a terminal storage commit or manifest failure for exactly one track
+- keep the session running long enough for unaffected tracks to continue producing chunks
+- host stops recording
+- wait for unaffected backlog drain
+- inspect final session and track states plus preserved artifacts
+
+Pass criteria:
+
+- the affected track moves to `failed`
+- the hosted recording run stays active long enough to keep accepting unaffected work under the normal phase rules
+- final session result is `stopped + degraded`
+- unaffected tracks continue uploading and can still finish cleanly
+- already committed chunks remain present on disk
+- final salvage manifest makes the failed track and any missing ranges explicit
+
+### 6. terminal session-level recording failure
+
+Goal: prove truly unrecoverable server-side recording failure is explicit and inspectable.
+
+Flow:
+
+- start from the happy path
+- after at least one track has accepted work, inject a session-level failure that makes the broader salvage set untrustworthy
+- let the system attempt its normal cleanup path
+- inspect final session and track states plus preserved artifacts
+
+Pass criteria:
+
+- the hosted recording result moves to `failed + failed`
+- new recording/upload mutations are rejected after failure, except exact idempotent replays
+- already committed chunks remain present on disk when storage is still readable
+- failure manifest or equivalent summary makes the terminal failure explicit
+
 ## implementation order
 
 Build this in small increments:
@@ -136,7 +199,10 @@ Build this in small increments:
 2. **happy path**: get one stable green end-to-end run
 3. **reconnect**: add deterministic disconnect/rejoin control
 4. **upload stall/resume**: add deterministic upload failure injection
-5. **network impairments**: add packet loss, latency, and bandwidth shaping once the basic harness is trustworthy
+5. **seat takeover**: add deterministic second-browser takeover control and stale-claim assertions
+6. **localized track failure**: add deterministic one-track failure injection and degraded-salvage assertions
+7. **terminal failure**: add deterministic session-level failure injection and artifact assertions
+8. **network impairments**: add packet loss, latency, and bandwidth shaping once the basic harness is trustworthy
 
 The first useful milestone is not a huge matrix. It is one reliable happy-path run plus one reliable failure-mode run.
 

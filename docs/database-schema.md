@@ -4,6 +4,8 @@ Related docs:
 
 - `docs/architecture.md`
 - `docs/identity.md`
+- `docs/seat-claim-protocol.md`
+- `docs/session-lifecycle.md`
 - `docs/recording-control-protocol.md`
 - `docs/recording-upload-protocol.md`
 
@@ -11,7 +13,7 @@ Related docs:
 
 Keep the **control-plane** and **session-server** schemas explicit and separate.
 
-Use this doc as the schema source of truth for v1. Keep join, rejoin, takeover, and role semantics in `docs/identity.md`.
+Use this doc as the schema source of truth for v1. Keep identity and permissions in `docs/identity.md`, seat-claim transitions in `docs/seat-claim-protocol.md`, and cross-layer state transitions in `docs/session-lifecycle.md`.
 
 ## control-plane schema
 
@@ -21,11 +23,11 @@ create table sessions (
   id text primary key,                  -- Public session id shared with the session server and artifact paths.
   title text not null,                  -- Host-facing label only. Not auth-sensitive.
   state text not null check (state in ('draft', 'ready', 'active', 'ended')),
-                                        -- draft=editable; ready=links/roster usable; active=server exists or live; ended=history only.
+                                        -- draft=editable; ready=shareable + provisionable before recording starts; active=runtime assigned or hosted run exists; ended=closed history only.
   host_join_key_hash blob not null,     -- Hash of the shared host link secret. Never store the raw secret.
   guest_join_key_hash blob not null,    -- Hash of the shared guest link secret.
   roster_version integer not null default 1,
-                                        -- Bump when roster or join keys change so the session server can resync.
+                                        -- Bump when draft/ready roster or join keys change so the next hosted session snapshot is correct.
   created_at text not null,             -- Audit trail and default ordering.
   updated_at text not null              -- Detects recent edits/stale views.
 );
@@ -75,8 +77,8 @@ create table session_servers (
   base_url text not null,               -- Public base URL used by browsers and control-plane links.
   region text,                          -- Placement/debug metadata only.
   state text not null check (state in ('creating', 'ready', 'stopping', 'stopped', 'failed')),
-                                        -- creating=provisioning; ready=joinable; stopping=teardown requested; stopped=gone; failed=broken.
-  synced_roster_version integer,        -- Last roster_version confirmed on that server; null before first sync.
+                                        -- creating=provisioning/bootstrap; ready=joinable runtime; stopping=intentional teardown requested; stopped=intentional teardown complete; failed=runtime not trustworthy.
+  synced_roster_version integer,        -- Last roster_version confirmed on that server for this hosted run; null before first sync.
   created_at text not null,             -- Provisioning audit trail.
   updated_at text not null              -- Tracks state changes and sync progress.
 );
@@ -102,7 +104,9 @@ create table session_snapshot (
   guest_join_key_hash blob not null,    -- Hash of the shared guest join secret copied from the control plane.
   roster_version integer not null,      -- Version of the auth/roster snapshot currently loaded here.
   recording_state text not null check (recording_state in ('waiting', 'recording', 'draining', 'stopped', 'failed')),
-                                        -- waiting=room exists; recording=local capture is active; draining=recording stopped but uploads still finishing; stopped=uploads drained and artifact set is stable; failed=operator attention required.
+                                        -- waiting=room exists, no recording run yet; recording=capture phase active; draining=stop accepted and backlog still finishing; stopped=final salvage manifest is available; failed=session-level salvage is no longer trustworthy enough to continue.
+  recording_health text not null check (recording_health in ('healthy', 'degraded', 'failed')),
+                                        -- healthy=no known terminal loss; degraded=partial/damaged but salvageable; failed=session-level terminal failure.
   recording_epoch_id text,              -- Stable opaque id for the one v1 recording run. Null before recording starts.
   recording_epoch_started_at text,      -- Audit timestamp for the accepted waiting->recording transition. Null before recording starts.
   updated_at text not null              -- When this server last applied a control-plane snapshot or changed recording state.
@@ -129,11 +133,11 @@ create table seat_claims (
                                         -- One claim row per seat. Delete it automatically if the seat leaves the roster.
   claim_secret_hash blob,               -- Hash of the current browser claim secret. Null means never claimed.
   state text not null check (state in ('unclaimed', 'active', 'disconnected')),
-                                        -- unclaimed=nobody yet; active=one browser owns it; disconnected=previous owner dropped.
+                                        -- unclaimed=nobody owns it; active=one browser owns it; disconnected=last owner timed out/gone and the seat is recoverable.
   current_connection_id text,           -- Runtime connection handle so replacement joins can evict the old connection cleanly.
   last_seen_at text,                    -- Heartbeat/disconnect time for UX and cleanup.
   claim_version integer not null default 0,
-                                        -- Bump on each claim/takeover so stale browsers cannot silently retake the seat.
+                                        -- Bump on each new claim-secret issuance so stale browsers cannot silently retake the seat.
   updated_at text not null              -- Last mutation time for this claim row.
 );
 
@@ -198,6 +202,14 @@ create index idx_track_chunks_track_created_at
   on track_chunks(recording_track_id, created_at);
 ```
 
+`session_snapshot.recording_state` is the recording phase. `session_snapshot.recording_health` is the artifact trust level. Keep them separate per `docs/session-lifecycle.md`.
+
+Invariants:
+
+- `waiting` implies `recording_health = 'healthy'`
+- `failed` implies `recording_health = 'failed'`
+- `stopped` may end as `healthy` or `degraded`
+
 `seat_claims` is ephemeral session-server state. Do not sync it back to the control plane.
 
 `recording_tracks` and `track_chunks` are session-local durability only. In v1, the control plane can fetch summaries or manifests from the session server when it needs to show download readiness; it does not need its own copy of per-chunk state.
@@ -232,6 +244,8 @@ Update `recording_tracks` only on lifecycle changes:
 - when all expected chunks are durably present, move to `state = 'complete'`
 - if the segment will never finish cleanly after disconnect/restart, move to `state = 'abandoned'`
 - if the server hits a terminal durability/storage reconciliation error, move to `state = 'failed'`
+
+A track-level `failed` must mark the hosted run at least `recording_health = 'degraded'`. It does **not** require `recording_state = 'failed'` unless the broader session-level salvage set becomes untrustworthy.
 
 Do **not** use `recording_tracks` as the per-chunk source of truth. That is what `track_chunks` is for.
 
