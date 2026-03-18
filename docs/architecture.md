@@ -8,6 +8,7 @@ Related docs:
 - `docs/testing.md`
 - `docs/identity.md`
 - `docs/database-schema.md`
+- `docs/recording-control-protocol.md`
 - `docs/recording-upload-protocol.md`
 
 ## recommendation

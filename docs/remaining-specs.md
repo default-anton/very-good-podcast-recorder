@@ -4,6 +4,7 @@ Related docs:
 
 - `docs/architecture.md`
 - `docs/identity.md`
+- `docs/recording-control-protocol.md`
 - `docs/recording-upload-protocol.md`
 - `docs/testing.md`
 - `docs/milestones.md`
@@ -11,6 +12,8 @@ Related docs:
 ## recommendation
 
 Do not split milestone 1+ feature work too broadly until the remaining contracts below are written down.
+
+The recording control contract now exists in `docs/recording-control-protocol.md`.
 
 The recording/upload contract now exists in `docs/recording-upload-protocol.md`.
 

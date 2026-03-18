@@ -4,6 +4,7 @@ Related docs:
 
 - `docs/architecture.md`
 - `docs/identity.md`
+- `docs/recording-control-protocol.md`
 - `docs/recording-upload-protocol.md`
 
 ## recommendation
@@ -91,6 +92,8 @@ Keep the session-server schema focused on 3 things only:
 
 Do **not** add a separate `recordings` table in v1. One hosted session has at most one recording run. If a browser reconnect splits a track, represent that with a new `recording_tracks` row and a bumped `segment_index`.
 
+For v1, the shared recording epoch is simply the moment `session_snapshot.recording_state` first moves to `recording`. `recording_tracks` stores capture offsets relative to that shared zero point. Do **not** use server receive time as sync metadata.
+
 ```sql
 -- session_snapshot: auth + high-level recording state for the one session hosted by this temporary server.
 create table session_snapshot (
@@ -100,6 +103,8 @@ create table session_snapshot (
   roster_version integer not null,      -- Version of the auth/roster snapshot currently loaded here.
   recording_state text not null check (recording_state in ('waiting', 'recording', 'draining', 'stopped', 'failed')),
                                         -- waiting=room exists; recording=local capture is active; draining=recording stopped but uploads still finishing; stopped=uploads drained and artifact set is stable; failed=operator attention required.
+  recording_epoch_id text,              -- Stable opaque id for the one v1 recording run. Null before recording starts.
+  recording_epoch_started_at text,      -- Audit timestamp for the accepted waiting->recording transition. Null before recording starts.
   updated_at text not null              -- When this server last applied a control-plane snapshot or changed recording state.
 );
 
