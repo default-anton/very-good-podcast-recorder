@@ -8,6 +8,7 @@ Related docs:
 - `docs/testing.md`
 - `docs/identity.md`
 - `docs/database-schema.md`
+- `docs/recording-upload-protocol.md`
 
 ## recommendation
 
@@ -25,9 +26,10 @@ Keep host orchestration out of the media-critical path: the persistent control p
 
 ## stack
 
-- **frontend**: TypeScript, React, Vite
+- **frontend**: TypeScript, React, Vite; our own control-plane and session UIs
+- **browser live media client**: LiveKit browser/JS SDK used from the session app
 - **control plane api**: Go, `net/http` + stdlib `ServeMux`
-- **live media**: self-hosted **LiveKit** on the temporary session server
+- **live media server**: self-hosted **LiveKit** on the temporary session server
 - **session api / upload service**: Go, `net/http` + stdlib `ServeMux`
 - **control-plane state**: SQLite for session metadata, participant identities, and provisioning state
 - **session-local state**: SQLite manifests + local disk for upload progress and track status, keyed by control-plane session/participant IDs
@@ -38,6 +40,30 @@ Keep host orchestration out of the media-critical path: the persistent control p
 - **provisioning**: start with one cloud target only (Hetzner or DigitalOcean), add others later
 - **tests**: Go test for backend, Vitest for frontend units, Playwright for host/guest smoke flows
 - **observability**: structured JSON logs, per-track upload counters, explicit session manifests
+
+## LiveKit integration boundary
+
+Use LiveKit as the **media substrate**, not as the product.
+
+LiveKit owns:
+
+- room transport for the live call
+- participant presence inside the room
+- publish / subscribe media routing
+- transport reconnect behavior
+- TURN / NAT traversal
+
+Our apps own:
+
+- join flow and seat selection UX
+- device setup and session-specific UI
+- host controls, including recording start / stop
+- local browser recording in rolling chunks
+- background upload, retry, resume, and manifest state
+- final artifact layout and download workflow
+- durable participant identity from the control plane
+
+Use the LiveKit JS SDK from our session app. Do **not** build the product on top of an off-the-shelf LiveKit UI. LiveKit React components are acceptable only as implementation helpers for non-core room UI, not as the foundation of the workflow.
 
 ## why this stack
 
@@ -51,9 +77,12 @@ Keep host orchestration out of the media-critical path: the persistent control p
 
 - Record **browser-native WebM chunks first**. Do not fight MP4/final packaging in the critical path.
 - Mint stable participant IDs in the control plane and sync the minimum session/participant snapshot to the temporary server.
+- Map durable control-plane seat identity into LiveKit tokens and room identity; do not let LiveKit identity become the only source of truth.
 - Persist upload progress per chunk so refresh/reconnect resumes instead of restarting.
 - Store an append-only manifest per track so incomplete uploads are visible and recoverable.
 - Use 2 bearer join links per session (host, guest) plus stable participant seats and per-browser claim secrets for reconnect and takeover handling.
+- Keep LiveKit room state separate from local recording state and upload state. Failure in one path must stay visible and recoverable in the others.
+- Do not use LiveKit server-side recording or egress as the primary recording source for v1.
 - Make the download artifact explicit: session folder + manifest, not a “magic” post-process pipeline.
 
 ## non-goals for v1

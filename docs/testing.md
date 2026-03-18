@@ -19,7 +19,7 @@ The first harness should run the **real local stack**, not mocks:
 - control plane web app + API
 - browser session app
 - temporary session API / upload service
-- LiveKit
+- self-hosted LiveKit
 - SQLite
 - local disk storage
 
@@ -33,9 +33,9 @@ Use Playwright to launch the browsers with deterministic fake media devices so t
 The harness should perform this flow:
 
 1. start the local stack
-2. create a session, participant records, and join URLs/tokens through the control plane
+2. create a session, participant records, and join URLs through the control plane
 3. launch host and guest browsers
-4. verify all participants join the same live session
+4. verify all participants join the same LiveKit room with the expected seat identities
 5. host starts recording
 6. hold the session long enough to produce multiple chunks per participant
 7. inject one failure for the scenario under test
@@ -49,12 +49,15 @@ The harness should perform this flow:
 Every run should produce text-first artifacts that an agent can inspect without video review:
 
 - harness summary JSON with pass/fail plus per-participant status
-- structured control-plane, app, and server logs with session and participant IDs
+- structured control-plane, app, session-server, and LiveKit-related logs with session and participant IDs
+- explicit mapping of seat ID → LiveKit participant identity in the summary or logs
 - session manifest showing expected participants, tracks, chunk counts, and final status
 - per-track upload manifest showing append order and any resume/retry events
 - artifact listing for the final downloadable session folder
 
 A run is not complete if the only proof is "the UI looked right".
+
+For v1, treat raw chunk files plus manifests as the canonical proof that recording worked. Do **not** make the happy path depend on server-side stitching, muxing, or transcoding.
 
 ## must-pass first scenarios
 
@@ -75,6 +78,7 @@ Flow:
 Pass criteria:
 
 - all 3 participants joined the live session
+- each participant joined with the expected seat ID / LiveKit identity mapping
 - all expected local tracks were created
 - each track uploaded more than one chunk
 - session manifest marks all expected tracks complete
@@ -96,6 +100,7 @@ Pass criteria:
 
 - other participants stay in the call
 - the rejoined guest returns without creating an ambiguous duplicate identity
+- the rejoined guest keeps the same seat ID / LiveKit participant identity
 - pre-disconnect chunks remain present
 - post-reconnect chunks append cleanly
 - final manifest shows one coherent track timeline or an explicit, non-silent split that tooling can understand

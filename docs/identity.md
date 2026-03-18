@@ -95,6 +95,37 @@ Permissions:
 - `host` can control recording
 - `guest` cannot
 
+## LiveKit identity and token mapping
+
+LiveKit room identity must mirror the durable session seat, not invent a second runtime identity.
+
+Rules:
+
+- LiveKit **participant identity** = `session_participants.id`
+- LiveKit **room** = the single temporary session room for that `session_id`
+- LiveKit **display name** = the seat `display_name`
+- LiveKit **metadata** may include `session_id`, `role`, and seat `id`, but the seat `id` remains the canonical identifier
+
+Token minting:
+
+- mint a LiveKit token only after the browser proves join-link access and successfully claims a seat
+- scope the token to one session room
+- encode only the minimum role information needed for room permissions
+- keep token issuance tied to the current seat claim; a seat reclaim or takeover must not create a second ambiguous runtime identity
+
+Permission mapping:
+
+- map `host` and `guest` into LiveKit room grants as needed for room access
+- keep recording control as an **app-level** permission derived from the seat role, not as LiveKit-only authority
+- do not rely on LiveKit alone to decide who owns a seat or who may control the recording workflow
+
+Reconnect and takeover:
+
+- transport reconnect keeps the same LiveKit participant identity because it keeps the same seat
+- browser rejoin after refresh or crash should reclaim the same seat and re-enter the room with the same LiveKit participant identity
+- explicit takeover keeps the same seat identity but replaces the owning browser claim
+- if the old connection is still present during takeover, remove or replace it explicitly; do not allow long-lived duplicate presence for one seat
+
 ## schema
 
 The v1 database schema now lives in `docs/database-schema.md`.
