@@ -4,6 +4,7 @@ Related docs:
 
 - `docs/architecture.md`
 - `docs/identity.md`
+- `docs/recording-upload-protocol.md`
 
 ## recommendation
 
@@ -82,22 +83,31 @@ create table session_servers (
 
 ## session-server schema
 
+Keep the session-server schema focused on 3 things only:
+
+- auth + roster snapshot for the hosted session
+- seat ownership for join/rejoin/takeover
+- append-only recording/upload manifests
+
+Do **not** add a separate `recordings` table in v1. One hosted session has at most one recording run. If a browser reconnect splits a track, represent that with a new `recording_tracks` row and a bumped `segment_index`.
+
 ```sql
--- session_snapshot: auth + roster version for the one session hosted by this temporary server.
+-- session_snapshot: auth + high-level recording state for the one session hosted by this temporary server.
 create table session_snapshot (
   session_id text primary key,          -- The single control-plane session this server is hosting.
   host_join_key_hash blob not null,     -- Hash of the shared host join secret copied from the control plane.
   guest_join_key_hash blob not null,    -- Hash of the shared guest join secret copied from the control plane.
   roster_version integer not null,      -- Version of the auth/roster snapshot currently loaded here.
-  recording_state text not null check (recording_state in ('waiting', 'recording', 'stopped')),
-                                        -- waiting=room exists; recording=host started; stopped=recording ended.
-  updated_at text not null              -- When this server last applied a control-plane snapshot.
+  recording_state text not null check (recording_state in ('waiting', 'recording', 'draining', 'stopped', 'failed')),
+                                        -- waiting=room exists; recording=local capture is active; draining=recording stopped but uploads still finishing; stopped=uploads drained and artifact set is stable; failed=operator attention required.
+  updated_at text not null              -- When this server last applied a control-plane snapshot or changed recording state.
 );
 
 -- participant_seats: local roster snapshot so join/rejoin does not depend on the control plane.
 create table participant_seats (
   id text primary key,                  -- Same id as session_participants.id from the control plane. Main runtime identity key.
-  session_id text not null,             -- Redundant but useful for sanity checks and local queries.
+  session_id text not null references session_snapshot(session_id) on delete cascade,
+                                        -- Redundant but useful for sanity checks and local queries.
   role text not null check (role in ('host', 'guest')),
                                         -- Must match control-plane permissions exactly.
   display_name text not null,           -- Name shown in the local picker and logs.
@@ -125,6 +135,119 @@ create table seat_claims (
 -- idx_seat_claims_state_last_seen: supports cleanup and "rejoin available" UI.
 create index idx_seat_claims_state_last_seen
   on seat_claims(state, last_seen_at);
+
+-- recording_tracks: append-only track segments produced by one seat's browser recorder.
+create table recording_tracks (
+  id text primary key,                  -- Stable opaque track id chosen by the browser and reused for chunk upload, resume, and manifests.
+  participant_seat_id text not null references participant_seats(id) on delete cascade,
+                                        -- Durable seat that owns this recorded segment.
+  session_id text not null references session_snapshot(session_id) on delete cascade,
+                                        -- Redundant copy of the hosted session id for simple local queries and artifact paths.
+  kind text not null check (kind in ('audio', 'video')),
+                                        -- Browser-local media kind.
+  segment_index integer not null check (segment_index >= 0),
+                                        -- 0-based segment number per seat + kind. Bump when reconnect/restart creates a new segment.
+  mime_type text not null,              -- Browser-reported container/codec string, e.g. audio/webm or video/webm.
+  state text not null check (state in ('recording', 'uploading', 'complete', 'abandoned', 'failed')),
+                                        -- recording=chunks still expected; uploading=local capture stopped and backlog is draining; complete=all expected chunks stored; abandoned=seat disappeared before upload completion; failed=terminal server-side error.
+  expected_chunk_count integer check (expected_chunk_count >= 0),
+                                        -- Null while the recorder is still running; set once the browser knows the final chunk count.
+  created_at text not null,             -- When the server created this track segment.
+  updated_at text not null              -- Tracks chunk progress and finalization.
+);
+
+-- idx_recording_tracks_session_seat_kind_segment_unique: prevents duplicate segments for one seat and kind.
+create unique index idx_recording_tracks_session_seat_kind_segment_unique
+  on recording_tracks(session_id, participant_seat_id, kind, segment_index);
+
+-- idx_recording_tracks_session_state: supports manifest generation and "waiting for uploads" checks.
+create index idx_recording_tracks_session_state
+  on recording_tracks(session_id, state);
+
+-- track_chunks: append-only upload manifest entries for completed chunks only.
+create table track_chunks (
+  id text primary key,                  -- Stable server-local chunk row id for logs and manifest rows.
+  recording_track_id text not null references recording_tracks(id) on delete cascade,
+                                        -- Owning track segment.
+  chunk_index integer not null check (chunk_index >= 0),
+                                        -- 0-based chunk number within the track segment.
+  storage_path text not null,           -- Relative path under the session artifact root where the chunk file lives.
+  byte_size integer not null check (byte_size >= 0),
+                                        -- Persisted file size for verification and listings.
+  sha256_hex text not null,             -- Content digest used for integrity checks and idempotent retry validation.
+  created_at text not null              -- When the chunk was fully received and committed.
+);
+
+-- idx_track_chunks_track_chunk_unique: makes chunk ingest idempotent for retries/resume.
+create unique index idx_track_chunks_track_chunk_unique
+  on track_chunks(recording_track_id, chunk_index);
+
+-- idx_track_chunks_track_created_at: preserves append order for per-track manifest reads.
+create index idx_track_chunks_track_created_at
+  on track_chunks(recording_track_id, created_at);
 ```
 
 `seat_claims` is ephemeral session-server state. Do not sync it back to the control plane.
+
+`recording_tracks` and `track_chunks` are session-local durability only. In v1, the control plane can fetch summaries or manifests from the session server when it needs to show download readiness; it does not need its own copy of per-chunk state.
+
+The downloadable artifact is the session folder on disk plus manifests derived from `session_snapshot`, `participant_seats`, `recording_tracks`, and `track_chunks`. Do not add a separate artifact table until we hit a real need.
+
+## implementation notes for `recording_tracks` and `track_chunks`
+
+Treat these as the implementation contract for v1.
+
+### `recording_tracks`
+
+One row means one seat's one logical media track segment:
+
+- one `participant_seat_id`
+- one `kind` (`audio` or `video`)
+- one `segment_index`
+
+Create a `recording_tracks` row when the browser starts a new local recorder for that seat + kind.
+
+Typical cases:
+
+- a participant browser starts local recorders after the session enters `recording` → create 2 rows for that seat: one `audio`, one `video`
+- browser reloads or reconnects and starts a fresh recorder → create a new row with the next `segment_index`
+
+Update `recording_tracks` only on lifecycle changes:
+
+- create with `state = 'recording'`
+- when local capture stops, set `expected_chunk_count`
+- if chunks are still draining, move to `state = 'uploading'`
+- when all expected chunks are durably present, move to `state = 'complete'`
+- if the segment will never finish cleanly after disconnect/restart, move to `state = 'abandoned'`
+- if the server hits a terminal integrity/storage error, move to `state = 'failed'`
+
+Do **not** use `recording_tracks` as the per-chunk source of truth. That is what `track_chunks` is for.
+
+### `track_chunks`
+
+One row means one fully received and durably committed chunk file for one `recording_track_id`.
+
+Insert a `track_chunks` row only after the server has:
+
+1. received the full chunk
+2. verified its byte size and SHA-256 digest
+3. written it successfully
+4. committed or moved it to its final `storage_path`
+
+`track_chunks` should be append-only in normal operation. Retries and resume should hit the unique index on `(recording_track_id, chunk_index)` and behave idempotently.
+
+Do **not** insert rows for:
+
+- upload started
+- partial chunk received
+- temp file exists but final commit did not happen
+
+### recording artifact rule
+
+For v1, recording success means:
+
+- raw browser-native chunk files exist on disk
+- `recording_tracks` accurately describes track lifecycle and segment splits
+- `track_chunks` accurately lists the committed chunks
+
+Do **not** require server-side stitching, muxing, or transcoding in the recording-critical path. If we later add export steps that concatenate chunks or mux audio + video into nicer deliverables, that is post-process convenience work, not the definition of a successful recording.
