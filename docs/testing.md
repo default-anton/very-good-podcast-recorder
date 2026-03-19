@@ -127,6 +127,7 @@ Pass criteria:
 - live session stays healthy while uploads are stalled
 - stalled participant continues producing local chunks
 - uploads retry or resume without restarting from zero
+- if the local recorder never restarted, the stalled participant keeps the same segment identity and does not need a fresh clock sync
 - manifest makes the interruption explicit
 - final uploaded chunk set is complete or the missing range is explicit and detectable
 

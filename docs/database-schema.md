@@ -235,6 +235,7 @@ Typical cases:
 
 - a participant browser starts local recorders after the session enters `recording` → create 2 rows for that seat: one `audio`, one `video`
 - browser reloads or reconnects and starts a fresh recorder → create a new row with the next `segment_index`
+- upload stalls or temporary server disconnects while the same local recorder keeps running → keep the existing row; do not create a new segment
 
 Update `recording_tracks` only on lifecycle changes:
 

@@ -88,6 +88,8 @@ The browser also chooses `segment_index` per seat + kind:
 
 If a reconnect/reload starts a new recorder, it must use a new `recording_track_id` and the next `segment_index`.
 
+If upload requests fail, the network drops, or the browser temporarily loses server connectivity **but the same local recorder keeps running**, the browser must keep the existing `recording_track_id` and `segment_index` for that unfinished segment and resume uploads when possible. Upload continuity is not a new segment boundary.
+
 ## capture timing model
 
 The shared sync anchor is the **session recording epoch**.
@@ -99,6 +101,7 @@ Rules:
 - the browser measures capture timing with a **monotonic local clock**, i.e. `performance.now()`
 - the browser maps that local monotonic clock onto the session recording epoch using a clock-sync estimate from the session server
 - the browser sends **segment-level capture offsets** relative to the session recording epoch
+- one clock-sync estimate anchors one uninterrupted local track segment
 - the server stores those offsets as recording metadata
 - server receive time and upload order are **not** sync metadata
 - wall-clock timestamps like `Date.now()` are **not** the source of truth for cross-participant alignment
@@ -110,6 +113,10 @@ For v1, the contract stores timing at the **track segment** level:
 - `clock_sync_uncertainty_us`
 
 Per-chunk timing is intentionally out of the critical path for v1. If we later need finer export alignment, we can derive it from container timestamps or add explicit chunk timing in a future version.
+
+### timing rationale
+
+Clock sync anchors **capture**, not upload transport. If the same local recorder keeps running, later chunk retries are still part of the same continuous segment, so they keep the same `recording_track_id`, `segment_index`, and clock-sync estimate. Only a fresh local recorder start creates a new segment boundary and requires a fresh clock sync.
 
 ## endpoints
 
@@ -143,6 +150,7 @@ Creates or replays one logical track segment for the currently claimed seat.
 - `capture_start_offset_us` must be `>= 0`
 - `clock_sync_uncertainty_us` must be `>= 0`
 - `capture_start_offset_us` must be derived from the browser's monotonic clock mapped onto the current session recording epoch
+- `capture_start_offset_us` must come from clock sync completed for this segment before the local recorder starts
 - allowed only when `session_snapshot.recording_state = 'recording'`
 - `recording_health` may be `healthy` or `degraded`; degraded runs still allow new segment starts while the phase remains `recording`
 
@@ -304,7 +312,8 @@ Declares that the browser will send no more chunks for this track segment.
 - track must exist and belong to the currently claimed seat
 - `expected_chunk_count` must be `>= 0`
 - `capture_end_offset_us` must be `>= capture_start_offset_us`
-- `capture_end_offset_us` must be derived from the browser's monotonic clock mapped onto the current session recording epoch
+- `capture_end_offset_us` must be derived from the same uninterrupted local segment timeline as `capture_start_offset_us`
+- `capture_end_offset_us` must be mapped onto the current session recording epoch with that segment's chosen clock-sync estimate
 - allowed when track state is `recording` or `uploading`
 - allowed when session state is `recording` or `draining`
 - `recording_health` may be `healthy` or `degraded`; degraded runs still allow unaffected tracks to finish cleanly
@@ -471,9 +480,9 @@ For one participant seat:
 10. each track becomes `complete` when all expected chunks are present
 11. session becomes `stopped + healthy` when all tracks are terminal and the final salvage set is clean
 
-## reconnect example
+## capture-restart example
 
-If one browser reloads during recording:
+If one browser reloads during recording and the local recorder restarts:
 
 - unfinished audio/video segment `0` may later become `abandoned`
 - rejoined browser reruns clock sync for the current `recording_epoch_id`
@@ -481,6 +490,16 @@ If one browser reloads during recording:
 - uploads continue into the new segment rows
 - each segment keeps its own capture offset range relative to the same session recording epoch
 - the final manifest shows an explicit split, not a silent overwrite
+
+## upload-resume example
+
+If one browser loses server connectivity during recording but its local recorder keeps running:
+
+- no new segment is created
+- browser keeps the same `recording_track_id` and `segment_index`
+- browser does **not** rerun clock sync just for upload resume
+- already-recorded local chunks upload after connectivity returns
+- final manifest still shows one continuous segment for that recorder
 
 ## degraded-session example
 

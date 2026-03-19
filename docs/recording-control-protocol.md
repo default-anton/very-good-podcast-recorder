@@ -200,6 +200,13 @@ No body.
 
 The browser must measure local monotonic send/receive times around each clock-sync request.
 
+Required v1 behavior:
+
+- run clock sync before starting each new local recording segment
+- use that segment's chosen clock-sync estimate to derive both `capture_start_offset_us` and `capture_end_offset_us`
+- if the browser reloads, crashes, or otherwise starts a fresh recorder segment, run clock sync again for the current `recording_epoch_id`
+- if upload requests stall or the network drops but the same local recorder segment keeps running, do **not** rerun clock sync just for upload resume
+
 Recommended algorithm:
 
 1. take 3 to 5 clock-sync samples
@@ -213,7 +220,7 @@ Recommended algorithm:
 4. keep the sample with the lowest `rtt_us`
 5. set `clock_sync_uncertainty_us` to at least `(rtt_us / 2) + server_processing_time_us`
 
-For one track segment, the browser should derive both `capture_start_offset_us` and `capture_end_offset_us` from the same chosen local recording-epoch estimate. If the browser reconnects and starts a fresh segment, it should run clock sync again for the current `recording_epoch_id`.
+This v1 contract does **not** require periodic background resync during one uninterrupted local segment. If later measurements show unacceptable long-run drift, we can extend the protocol with optional periodic sync without changing the segment model.
 
 ### 4. stop recording
 
