@@ -10,7 +10,7 @@ The main host runs or deploys a persistent control plane web app. It keeps the S
 
 For each recording session, the control plane starts a temporary session server in the best available region and syncs the stable participant IDs needed for reconnect handling. That server runs the backend for the live browser session and receives uploaded recording chunks during the call. The host shares a join URL, and hosts and guests open it in Chrome or another modern browser, like a normal video call.
 
-While the session is running, each participant records audio and video locally on their own machine. Those recordings are uploaded to the session server in the background as chunks. The main host controls when recording starts and stops from the control plane. After the session, the host downloads the files and destroys the server from the control plane.
+While the session is running, each participant records audio and video locally on their own machine. For v1, that means one microphone track and one camera track per participant, targeting 1080p30 video with 720p30 fallback and 48 kHz Opus audio in browser-native WebM. Those recordings are uploaded to the session server in the background as chunks. The main host controls when recording starts and stops from the control plane. After the session, the host downloads the files and destroys the server from the control plane.
 
 That gives you three separate things:
 

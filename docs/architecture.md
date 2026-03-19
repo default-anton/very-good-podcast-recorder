@@ -12,6 +12,7 @@ Related docs:
 - `docs/database-schema.md`
 - `docs/recording-control-protocol.md`
 - `docs/recording-upload-protocol.md`
+- `docs/capture-profile.md`
 
 ## recommendation
 
@@ -79,6 +80,7 @@ Use the LiveKit JS SDK from our session app. Do **not** build the product on top
 ## implementation notes
 
 - Record **browser-native WebM chunks first**. Do not fight MP4/final packaging in the critical path.
+- Lock v1 capture to **one mic track + one camera track per participant**, targeting **1080p30 video** with **720p30 fallback** and **48 kHz Opus audio**. Do **not** chase 2K/4K in the critical path.
 - Mint stable participant IDs in the control plane and sync the minimum session/participant snapshot to the temporary server.
 - Map durable control-plane seat identity into LiveKit tokens and room identity; do not let LiveKit identity become the only source of truth.
 - Persist upload progress per chunk so refresh/reconnect resumes instead of restarting.

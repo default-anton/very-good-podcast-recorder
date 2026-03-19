@@ -9,6 +9,7 @@ Related docs:
 - `docs/seat-claim-protocol.md`
 - `docs/session-lifecycle.md`
 - `docs/recording-control-protocol.md`
+- `docs/capture-profile.md`
 
 ## recommendation
 
@@ -22,8 +23,10 @@ Keep the contract boring and text-first. Do **not** infer track lifecycle from r
 
 For v1, the browser uploads **2 logical tracks per participant**:
 
-- `audio`
-- `video`
+- `audio` = microphone
+- `video` = camera
+
+The v1 capture profile is locked in `docs/capture-profile.md`: target **1080p30 video** with **720p30 fallback**, plus **48 kHz Opus audio** in browser-native WebM.
 
 Each logical track uploads as many browser-native chunks, usually WebM-based. The canonical recording artifact is:
 

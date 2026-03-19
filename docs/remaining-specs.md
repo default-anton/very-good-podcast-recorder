@@ -20,6 +20,8 @@ The recording control contract now exists in `docs/recording-control-protocol.md
 
 The recording/upload contract now exists in `docs/recording-upload-protocol.md`.
 
+The v1 capture profile now exists in `docs/capture-profile.md`.
+
 The next thin specs to lock down are:
 
 1. artifact manifest format
@@ -40,6 +42,7 @@ Define:
 - per-track manifest JSON schema
 - status values for complete/partial/missing/failed
 - file naming conventions
+- actual negotiated capture settings recorded per track, at minimum the browser-reported mime type plus observed width/height/fps/sample rate/channel count when available
 
 Without this, the harness cannot assert correctness cleanly.
 
