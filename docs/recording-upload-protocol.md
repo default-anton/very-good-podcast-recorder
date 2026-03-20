@@ -21,10 +21,21 @@ Use a small, explicit 3-step protocol:
 
 Keep the contract boring and text-first. Do **not** infer track lifecycle from random chunk uploads.
 
-For v1, the browser uploads **2 logical tracks per participant**:
+For v1, the browser uploads **one or more logical source-instance tracks per participant seat**:
 
-- `audio` = microphone
-- `video` = camera
+- `mic` → `audio`
+- `camera` → `video`
+- `screen` → `video`
+- `system_audio` → `audio`
+
+Use this model throughout the protocol:
+
+- `source` = coarse capture type
+- `source_instance_id` = one logical capture device or one screen-share episode under one seat
+- `capture_group_id` = optional grouping id for one user share action that yielded paired `screen` + `system_audio` instances
+- `segment_index` = restart counter for one uninterrupted recorder lineage within the same `source_instance_id`
+
+`mic` is the baseline source. One camera source is the baseline video source, but a seat may publish and record more camera source instances at the same time. `screen` is optional per seat and may start, stop, and start again during the same recording run. `system_audio` is optional and best-effort; if the browser/platform does not expose it, that share episode simply has no `system_audio` source instance.
 
 The v1 capture profile is locked in `docs/capture-profile.md`: target **1080p30 video** with **720p30 fallback**, plus **48 kHz Opus audio** in browser-native WebM.
 
@@ -83,15 +94,21 @@ That id must survive:
 - page refresh recovery
 - upload resume for the same unfinished segment
 
-The browser also chooses `segment_index` per seat + kind:
+The browser must also choose and persist `source_instance_id` and `segment_index` with these rules:
 
-- first audio segment = `0`
-- first video segment = `0`
-- each fresh recorder restart for that seat + kind increments by `1`
+- one logical mic capture lineage for a seat gets one `source_instance_id`
+- each camera source instance gets its own `source_instance_id`
+- each new screen-share start gets a fresh `screen` `source_instance_id`
+- each paired `system_audio` capture from that same share action gets its own `system_audio` `source_instance_id`
+- if one user share action produced both `screen` and `system_audio`, both rows also share one `capture_group_id`
+- the first segment for any fresh `source_instance_id` is `segment_index = 0`
+- each fresh recorder restart for that same `source_instance_id` increments `segment_index` by `1`
 
-If a reconnect/reload starts a new recorder, it must use a new `recording_track_id` and the next `segment_index`.
+If a reconnect/reload starts a new recorder for the same still-active source instance, it must use a new `recording_track_id` and the next `segment_index` for that same `source_instance_id`.
 
-If upload requests fail, the network drops, or the browser temporarily loses server connectivity **but the same local recorder keeps running**, the browser must keep the existing `recording_track_id` and `segment_index` for that unfinished segment and resume uploads when possible. Upload continuity is not a new segment boundary.
+If the participant intentionally starts a new source instance instead — for example, a second camera or a later screen-share episode — the browser must mint a fresh `source_instance_id` and start again at `segment_index = 0`.
+
+If upload requests fail, the network drops, or the browser temporarily loses server connectivity **but the same local recorder keeps running**, the browser must keep the existing `recording_track_id`, `source_instance_id`, and `segment_index` for that unfinished segment and resume uploads when possible. Upload continuity is not a new segment boundary.
 
 ## capture timing model
 
@@ -119,7 +136,7 @@ Per-chunk timing is intentionally out of the critical path for v1. If we later n
 
 ### timing rationale
 
-Clock sync anchors **capture**, not upload transport. If the same local recorder keeps running, later chunk retries are still part of the same continuous segment, so they keep the same `recording_track_id`, `segment_index`, and clock-sync estimate. Only a fresh local recorder start creates a new segment boundary and requires a fresh clock sync.
+Clock sync anchors **capture**, not upload transport. If the same local recorder keeps running, later chunk retries are still part of the same continuous segment, so they keep the same `recording_track_id`, `source_instance_id`, `segment_index`, and clock-sync estimate. Only a fresh local recorder start creates a new segment boundary and requires a fresh clock sync.
 
 ## endpoints
 
@@ -135,6 +152,9 @@ Creates or replays one logical track segment for the currently claimed seat.
 {
   "recording_track_id": "trk_01hr...",
   "recording_epoch_id": "re_01hr...",
+  "source": "mic",
+  "source_instance_id": "src_mic_01hr...",
+  "capture_group_id": null,
   "kind": "audio",
   "segment_index": 0,
   "mime_type": "audio/webm",
@@ -147,7 +167,11 @@ Creates or replays one logical track segment for the currently claimed seat.
 
 - `recording_track_id` is client-generated and unique for this segment
 - `recording_epoch_id` must equal the current session `recording_epoch_id`
+- `source` must be one of `mic`, `camera`, `screen`, `system_audio`
+- `source_instance_id` must be a client-generated opaque id for one logical source instance under the claimed seat
+- `capture_group_id` is optional; when present, it groups paired `screen` + `system_audio` source instances created by the same user share action
 - `kind` must be `audio` or `video`
+- `source` + `kind` must be one of: `mic+audio`, `camera+video`, `screen+video`, `system_audio+audio`
 - `segment_index` must be `>= 0`
 - `mime_type` must be the browser recorder mime type for the segment
 - `capture_start_offset_us` must be `>= 0`
@@ -165,7 +189,7 @@ If the same seat replays the same `recording_track_id` with the exact same field
 
 If `recording_track_id` already exists with different fields, return `409`.
 
-If another row already exists for the same `(participant_seat_id, kind, segment_index)` with a different `recording_track_id`, return `409`.
+If another row already exists for the same `(participant_seat_id, source_instance_id, segment_index)` with a different `recording_track_id`, return `409`.
 
 ### successful behavior
 
@@ -174,6 +198,9 @@ On first success, the server creates `recording_tracks` with:
 - `id = recording_track_id`
 - derived `participant_seat_id`
 - derived `session_id`
+- `source`
+- `source_instance_id`
+- optional `capture_group_id`
 - `kind`
 - `segment_index`
 - `mime_type`
@@ -196,6 +223,9 @@ The server must also validate that the request `recording_epoch_id` matches the 
   "recording_epoch_id": "re_01hr...",
   "participant_seat_id": "seat_01hr...",
   "session_id": "sess_01hr...",
+  "source": "mic",
+  "source_instance_id": "src_mic_01hr...",
+  "capture_group_id": null,
   "kind": "audio",
   "segment_index": 0,
   "mime_type": "audio/webm",
@@ -472,24 +502,46 @@ Use actionable codes/messages. Never log or return raw claim secrets.
 For one participant seat:
 
 1. browser learns the current `recording_epoch_id` and completes clock sync through `docs/recording-control-protocol.md`
-2. browser starts local audio recorder
-3. browser `POST /api/v1/recording-tracks/start` for audio segment `0`
-4. browser starts local video recorder
-5. browser `POST /api/v1/recording-tracks/start` for video segment `0`
-6. browser uploads chunks with `PUT /api/v1/recording-tracks/{recording_track_id}/chunks/{chunk_index}` as they are produced
-7. host stops recording; session moves to `draining`
-8. browser calls `finish` for audio and video with final `expected_chunk_count` and `capture_end_offset_us`
-9. remaining backlog uploads continue during `draining`
-10. each track becomes `complete` when all expected chunks are present
-11. session becomes `stopped + healthy` when all tracks are terminal and the final salvage set is clean
+2. browser starts local `mic` and baseline `camera` recorders
+3. browser `POST /api/v1/recording-tracks/start` for `mic` `source_instance_id = src_mic_...`, segment `0`
+4. browser `POST /api/v1/recording-tracks/start` for the baseline `camera` `source_instance_id = src_cam_primary_...`, segment `0`
+5. if the participant enables extra cameras, browser starts one recorder per extra camera source instance and calls `start` for each one
+6. if the participant starts screen share, browser starts a fresh `screen` source instance and, when available, a paired `system_audio` source instance with the same `capture_group_id`
+7. browser uploads chunks with `PUT /api/v1/recording-tracks/{recording_track_id}/chunks/{chunk_index}` as they are produced
+8. host stops recording; session moves to `draining`
+9. browser calls `finish` for every started source-instance track with final `expected_chunk_count` and `capture_end_offset_us`
+10. remaining backlog uploads continue during `draining`
+11. each track becomes `complete` when all expected chunks are present
+12. session becomes `stopped + healthy` when all started tracks are terminal and the final salvage set is clean
+
+## repeated-screen-share example
+
+If one participant starts, stops, and later restarts screen share during the same recording run:
+
+- the first share creates `screen` `source_instance_id = src_screen_a` and, when available, paired `system_audio` `source_instance_id = src_system_audio_a`, both with `capture_group_id = cg_a`
+- when the participant stops sharing, the browser calls `finish` for those active source-instance tracks
+- those finished tracks may move to `uploading` and then `complete`; this is a normal lifecycle, not `abandoned`
+- when the participant starts sharing again later, the browser creates fresh `source_instance_id` values, for example `src_screen_b` and optional `src_system_audio_b`, plus a fresh `capture_group_id = cg_b`
+- the new share episode starts at `segment_index = 0` again because it is a new source instance, not a reconnect split
+- the final manifest shows two explicit screen source instances for that seat
+
+## multi-camera example
+
+If one host records a webcam and an overhead camera at the same time:
+
+- both tracks use `source = 'camera'`
+- each camera gets its own `source_instance_id`, for example `src_cam_webcam` and `src_cam_overhead`
+- both camera source instances may be active concurrently under the same `participant_seat_id`
+- if one camera stops while the other keeps running, finish only the stopped camera's active track; do not affect the other camera source instance
+- if one camera recorder reconnects/restarts, bump `segment_index` only for that same camera `source_instance_id`
 
 ## capture-restart example
 
-If one browser reloads during recording and the local recorder restarts:
+If one browser reloads during recording and one local recorder restarts:
 
-- unfinished audio/video segment `0` may later become `abandoned`
+- any unfinished `mic`, `camera`, `screen`, or `system_audio` segment `0` may later become `abandoned`
 - rejoined browser reruns clock sync for the current `recording_epoch_id`
-- rejoined browser creates fresh audio/video tracks with `segment_index = 1`
+- rejoined browser creates fresh track rows with `segment_index = 1` for whichever `source_instance_id` values are still active and resume
 - uploads continue into the new segment rows
 - each segment keeps its own capture offset range relative to the same session recording epoch
 - the final manifest shows an explicit split, not a silent overwrite
@@ -499,14 +551,14 @@ If one browser reloads during recording and the local recorder restarts:
 If one browser loses server connectivity during recording but its local recorder keeps running:
 
 - no new segment is created
-- browser keeps the same `recording_track_id` and `segment_index`
+- browser keeps the same `recording_track_id`, `source_instance_id`, and `segment_index`
 - browser does **not** rerun clock sync just for upload resume
 - already-recorded local chunks upload after connectivity returns
 - final manifest still shows one continuous segment for that recorder
 
 ## degraded-session example
 
-If one participant video track hits a terminal storage failure during recording:
+If one participant source track hits a terminal storage failure during recording:
 
 - that track moves to `failed`
 - the hosted recording health moves to `degraded`
@@ -527,6 +579,7 @@ If the session server can no longer trust the broader salvage set:
 
 - direct browser upload to object storage
 - server-side mux/transcode as part of recording success
-- multiple active devices uploading for one seat at the same time
+- more than one active `mic` source instance per seat in v1
+- more than one active screen-share episode per seat at the same time in v1
 - freeform client mutation of server-owned terminal states
 - per-chunk capture timing in the upload contract

@@ -310,11 +310,12 @@ Use the same error shape as `docs/recording-upload-protocol.md`.
 3. host calls `POST /api/v1/session-recording/start`
 4. browsers observe `recording_state = 'recording'` via `GET /api/v1/session` or an equivalent real-time update
 5. each browser runs 3 to 5 `POST /api/v1/session-recording/clock-sync` probes
-6. each browser starts local audio/video recorders
-7. browsers upload track segments using `docs/recording-upload-protocol.md`
-8. host calls `POST /api/v1/session-recording/stop`
-9. session remains `draining` until uploads reach terminal state
-10. session becomes `stopped`; final `recording_health` tells the host whether the artifact set is clean (`healthy`) or salvage-only (`degraded`)
+6. each browser starts local recorders for whichever v1 source instances are active: baseline `mic`, one or more `camera` source instances, and any optional `screen` + best-effort paired `system_audio` source instances
+7. while `recording_state = 'recording'`, participants may start and stop optional source instances, especially screen share, multiple times without affecting the hosted recording run itself
+8. browsers upload track segments using `docs/recording-upload-protocol.md`
+9. host calls `POST /api/v1/session-recording/stop`
+10. session remains `draining` until uploads reach terminal state
+11. session becomes `stopped`; final `recording_health` tells the host whether the artifact set is clean (`healthy`) or salvage-only (`degraded`)
 
 ## non-goals for v1
 

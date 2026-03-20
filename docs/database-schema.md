@@ -92,7 +92,7 @@ Keep the session-server schema focused on 3 things only:
 - seat ownership for join/rejoin/takeover
 - append-only recording/upload manifests
 
-Do **not** add a separate `recordings` table in v1. One hosted session has at most one recording run. If a browser reconnect splits a track, represent that with a new `recording_tracks` row and a bumped `segment_index`.
+Do **not** add a separate `recordings` table in v1. One hosted session has at most one recording run. If a browser reconnect splits an active source instance, represent that with a new `recording_tracks` row and a bumped `segment_index` for that same `source_instance_id`. If a participant intentionally starts a fresh screen-share episode or extra camera, represent that with a new `source_instance_id` and a new `recording_tracks` row with `segment_index = 0`.
 
 For v1, the shared recording epoch is simply the moment `session_snapshot.recording_state` first moves to `recording`. `recording_tracks` stores capture offsets relative to that shared zero point. Do **not** use server receive time as sync metadata.
 
@@ -152,10 +152,16 @@ create table recording_tracks (
                                         -- Durable seat that owns this recorded segment.
   session_id text not null references session_snapshot(session_id) on delete cascade,
                                         -- Redundant copy of the hosted session id for simple local queries and artifact paths.
+  source text not null check (source in ('mic', 'camera', 'screen', 'system_audio')),
+                                        -- Stable v1 capture source type for this seat.
+  source_instance_id text not null,
+                                        -- Stable source instance id under one seat. Multiple camera instances are allowed; each new screen-share start gets a fresh source instance id.
+  capture_group_id text,
+                                        -- Optional grouping id for one user capture action that yielded paired sources, e.g. one screen share plus its best-effort system audio.
   kind text not null check (kind in ('audio', 'video')),
-                                        -- Browser-local media kind.
+                                        -- Browser-local media kind. Must match the chosen source.
   segment_index integer not null check (segment_index >= 0),
-                                        -- 0-based segment number per seat + kind. Bump when reconnect/restart creates a new segment.
+                                        -- 0-based segment number per seat + source_instance_id. Bump when reconnect/restart creates a new segment for the same source instance.
   mime_type text not null,              -- Browser-reported container/codec string, e.g. audio/webm or video/webm.
   capture_start_offset_us integer not null check (capture_start_offset_us >= 0),
                                         -- Browser-reported segment start offset from the session recording epoch, measured from a local monotonic clock mapping.
@@ -168,12 +174,18 @@ create table recording_tracks (
   expected_chunk_count integer check (expected_chunk_count >= 0),
                                         -- Null while the recorder is still running; set once the browser knows the final chunk count.
   created_at text not null,             -- When the server created this track segment.
-  updated_at text not null              -- Tracks chunk progress and finalization.
+  updated_at text not null,             -- Tracks chunk progress and finalization.
+  check (
+    (source = 'mic' and kind = 'audio') or
+    (source = 'camera' and kind = 'video') or
+    (source = 'screen' and kind = 'video') or
+    (source = 'system_audio' and kind = 'audio')
+  )
 );
 
--- idx_recording_tracks_session_seat_kind_segment_unique: prevents duplicate segments for one seat and kind.
-create unique index idx_recording_tracks_session_seat_kind_segment_unique
-  on recording_tracks(session_id, participant_seat_id, kind, segment_index);
+-- idx_recording_tracks_session_seat_source_instance_segment_unique: prevents duplicate segments for one seat and source instance.
+create unique index idx_recording_tracks_session_seat_source_instance_segment_unique
+  on recording_tracks(session_id, participant_seat_id, source_instance_id, segment_index);
 
 -- idx_recording_tracks_session_state: supports manifest generation and "waiting for uploads" checks.
 create index idx_recording_tracks_session_state
@@ -222,19 +234,24 @@ Treat these as the implementation contract for v1.
 
 ### `recording_tracks`
 
-One row means one seat's one logical media track segment:
+One row means one seat's one logical source-instance segment:
 
 - one `participant_seat_id`
+- one `source` (`mic`, `camera`, `screen`, or `system_audio`)
+- one `source_instance_id`
+- optional one `capture_group_id` for paired `screen` + `system_audio` instances from the same user action
 - one `kind` (`audio` or `video`)
 - one `segment_index`
 - one capture offset range relative to the shared session recording epoch
 
-Create a `recording_tracks` row when the browser starts a new local recorder for that seat + kind.
+Create a `recording_tracks` row when the browser starts a new local recorder for that seat + `source_instance_id`.
 
 Typical cases:
 
-- a participant browser starts local recorders after the session enters `recording` → create 2 rows for that seat: one `audio`, one `video`
-- browser reloads or reconnects and starts a fresh recorder → create a new row with the next `segment_index`
+- a participant browser starts local recorders after the session enters `recording` → create a baseline row for `mic`, one row for each started camera source instance, and later optional `screen` + `system_audio` rows as that seat starts screen share
+- participant intentionally starts a second camera while still recording the first one → create a second `camera` row with a different `source_instance_id`
+- participant stops screen share and starts it again later → finish the old screen/source-audio rows cleanly, then create fresh `screen` and optional `system_audio` rows with new `source_instance_id` values and `segment_index = 0`
+- browser reloads or reconnects and starts a fresh recorder for one still-active source instance → create a new row with the next `segment_index` for that same `source_instance_id`
 - upload stalls or temporary server disconnects while the same local recorder keeps running → keep the existing row; do not create a new segment
 
 Update `recording_tracks` only on lifecycle changes:
@@ -274,7 +291,7 @@ Do **not** insert rows for:
 For v1, recording success means:
 
 - raw browser-native chunk files exist on disk
-- `recording_tracks` accurately describes track lifecycle and segment splits
+- `recording_tracks` accurately describes source-instance lifecycle and segment splits
 - `track_chunks` accurately lists the committed chunks
 
 Do **not** require server-side stitching, muxing, or transcoding in the recording-critical path. If we later add export steps that concatenate chunks or mux audio + video into nicer deliverables, that is post-process convenience work, not the definition of a successful recording.
