@@ -37,12 +37,13 @@ The docs already say "session folder + manifest." Now lock the shape down.
 
 Define:
 
-- session directory layout
+- session directory layout, including seat/source/source-instance/segment/chunk organization
 - session manifest JSON schema
-- per-track manifest JSON schema
+- per-source-track manifest JSON schema
 - status values for complete/partial/missing/failed
 - file naming conventions
-- actual negotiated capture settings recorded per track, at minimum the browser-reported mime type plus observed width/height/fps/sample rate/channel count when available
+- source-instance identity fields, at minimum `source_instance_id` plus optional `capture_group_id` for paired screen/system-audio episodes
+- actual negotiated capture settings recorded per source track, at minimum the browser-reported source, kind, mime type, and observed width/height/fps/sample rate/channel count when available
 
 Without this, the harness cannot assert correctness cleanly.
 

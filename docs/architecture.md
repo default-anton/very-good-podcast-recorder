@@ -21,7 +21,7 @@ Ship v1 as a **persistent host control plane** plus a **single-tenant temporary 
 Keep the product split into 3 independent paths:
 
 - **live call path**: browser ↔ SFU for conversation and monitoring
-- **local capture path**: browser records per-participant media locally in rolling chunks
+- **local capture path**: browser records per-seat source instances locally in rolling chunks
 - **upload path**: browser uploads those chunks in the background with retry + resume
 
 That is the right shape for reliability. A bad live connection must not silently ruin the local recording, and a stalled upload must not kill the call.
@@ -37,7 +37,7 @@ Keep host orchestration out of the media-critical path: the persistent control p
 - **session api / upload service**: Go, `net/http` + stdlib `ServeMux`
 - **control-plane state**: SQLite for session metadata, participant identities, and provisioning state
 - **session-local state**: SQLite manifests + local disk for upload progress and track status, keyed by control-plane session/participant IDs
-- **file storage**: local disk on the session VM for v1, organized by session/participant/track/chunk
+- **file storage**: local disk on the session VM for v1, organized by session/participant/source/source-instance/segment/chunk
 - **edge / tls**: Caddy
 - **turn / nat traversal**: LiveKit embedded TURN by default; external TURN only if we hit a concrete requirement
 - **packaging**: Docker Compose for the temporary session server; keep the control plane simple enough to run locally or on a small Ubuntu VM
@@ -80,11 +80,12 @@ Use the LiveKit JS SDK from our session app. Do **not** build the product on top
 ## implementation notes
 
 - Record **browser-native WebM chunks first**. Do not fight MP4/final packaging in the critical path.
-- Lock v1 capture to **one mic track + one camera track per participant**, targeting **1080p30 video** with **720p30 fallback** and **48 kHz Opus audio**. Do **not** chase 2K/4K in the critical path.
+- Lock v1 capture to **one mic source per seat**, **one or more camera source instances per seat**, and **repeatable optional screen-share source instances** with paired best-effort **system audio** when the browser/platform exposes it. Keep **1080p30 video** with **720p30 fallback** and **48 kHz Opus audio** as the baseline. Do **not** chase 2K/4K in the critical path.
+- Model capture as **seat → source type → source instance → segment**. A fresh screen-share start creates a new source instance; a reconnect/restart of the same still-active source creates the next segment for that same source instance.
 - Mint stable participant IDs in the control plane and sync the minimum session/participant snapshot to the temporary server.
-- Map durable control-plane seat identity into LiveKit tokens and room identity; do not let LiveKit identity become the only source of truth.
+- Map durable control-plane seat identity into LiveKit tokens and room identity; do not let LiveKit identity become the only source of truth, and do not assume one seat publishes only one media track.
 - Persist upload progress per chunk so refresh/reconnect resumes instead of restarting.
-- Store an append-only manifest per track so incomplete uploads are visible and recoverable.
+- Store an append-only manifest per source-instance segment so incomplete uploads are visible and recoverable.
 - Record browser-monotonic capture offsets relative to the session recording epoch as sync metadata. Do **not** treat server receive time as track timing.
 - Use 2 bearer join links per session (host, guest) plus stable participant seats and per-browser claim secrets for reconnect and takeover handling.
 - Keep LiveKit room state separate from local recording state and upload state. Failure in one path must stay visible and recoverable in the others.

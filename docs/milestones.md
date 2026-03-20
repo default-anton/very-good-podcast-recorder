@@ -93,8 +93,8 @@ See `docs/feedback-loop.md` for the quality bar and tool choices.
 - host starts and stops recording
 - each participant records local chunks
 - each participant uploads during the call
-- final session manifest shows all expected participants and tracks
-- one-command harness runs the full happy path and emits JSON
+- final session manifest shows all expected participants, started source instances, and tracks
+- one-command harness runs the full happy path and emits JSON, including at least one screen-share source path; follow-up harness scenarios cover repeated screen-share episodes and a multi-camera seat path
 
 **Done when:**
 

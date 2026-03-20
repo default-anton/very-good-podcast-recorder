@@ -10,7 +10,7 @@ The main host runs or deploys a persistent control plane web app. It keeps the S
 
 For each recording session, the control plane starts a temporary session server in the best available region and syncs the stable participant IDs needed for reconnect handling. That server runs the backend for the live browser session and receives uploaded recording chunks during the call. The host shares a join URL, and hosts and guests open it in Chrome or another modern browser, like a normal video call.
 
-While the session is running, each participant records audio and video locally on their own machine. For v1, that means one microphone track and one camera track per participant, targeting 1080p30 video with 720p30 fallback and 48 kHz Opus audio in browser-native WebM. Those recordings are uploaded to the session server in the background as chunks. The main host controls when recording starts and stops from the control plane. After the session, the host downloads the files and destroys the server from the control plane.
+While the session is running, each participant records media locally on their own machine. For v1, a participant seat may produce one mic source, one or more camera source instances, and zero or more screen-share source instances during the recording run. Each screen-share start may also produce a paired best-effort system-audio source instance when the browser/platform exposes it. Starting and stopping screen share during the session is normal and creates additional source instances rather than errors. Video targets 1080p30 with 720p30 fallback, and audio targets 48 kHz Opus in browser-native WebM. Those recordings are uploaded to the session server in the background as chunks. The main host controls when recording starts and stops from the control plane. After the session, the host downloads the files and destroys the server from the control plane.
 
 That gives you three separate things:
 
@@ -25,7 +25,7 @@ The point is simple: joining should feel like opening a normal call link, but th
 - a persistent host control plane web app with SQLite-backed session and participant state
 - browser-based group session that hosts and guests join via a URL
 - a temporary session server for the live session and recording uploads
-- separate local audio and video tracks per participant
+- separate local source tracks per participant seat, including mic, one or more camera sources, and repeatable optional screen/system-audio capture episodes
 - stable participant identities for reconnect handling
 - host-controlled recording start and stop
 - storage and workflow under your control
@@ -43,7 +43,7 @@ It does this:
 - provide a join URL for hosts and guests
 - run the live browser session through that server
 - let the main host start and stop recording from the control plane
-- record local participant tracks
+- record local participant source tracks, including repeated screen-share episodes and multi-camera seats
 - upload those tracks in the background to the server
 - let the host download the files manually
 - destroy the server from the control plane when the session is over

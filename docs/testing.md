@@ -29,7 +29,7 @@ It should drive **3 browser participants** through one session:
 - 1 host
 - 2 guests
 
-Use Playwright to launch the browsers with deterministic fake media devices so the run is repeatable and works headless on a dev machine.
+Use Playwright to launch the browsers with deterministic fake media devices, a deterministic fake display-capture source, and a deterministic way to create extra camera source instances so the run is repeatable and works headless on a dev machine.
 
 The harness should perform this flow:
 
@@ -52,7 +52,7 @@ Every run should produce text-first artifacts that an agent can inspect without 
 - harness summary JSON with pass/fail plus per-participant status
 - structured control-plane, app, session-server, and LiveKit-related logs with session and participant IDs
 - explicit mapping of seat ID → LiveKit participant identity in the summary or logs
-- session manifest showing `recording_epoch_id`, expected participants, tracks, capture offset ranges, chunk counts, final `recording_state`, and final `recording_health`
+- session manifest showing `recording_epoch_id`, expected participants, expected baseline sources per seat, started source instances per seat, per-track `source_instance_id` / optional `capture_group_id`, capture offset ranges, chunk counts, final `recording_state`, and final `recording_health`
 - per-track upload manifest showing append order and any resume/retry events
 - artifact listing for the final downloadable session folder
 
@@ -80,14 +80,63 @@ Pass criteria:
 
 - all 3 participants joined the live session
 - each participant joined with the expected seat ID / LiveKit identity mapping
-- all expected local tracks were created
-- each track uploaded more than one chunk
-- session manifest marks all expected tracks complete
+- all expected baseline local source instances were created
+- each baseline track uploaded more than one chunk
+- session manifest marks all expected baseline source instances complete
 - final session result is `stopped + healthy`
 - segment capture offsets are present and plausible for all tracks
 - final artifact layout matches the manifest
 
-### 2. guest reconnect during recording
+### 2. repeated screen-share path
+
+Goal: prove one seat can add and remove optional recording sources without breaking the base model.
+
+Flow:
+
+- start from the happy path
+- one participant starts screen share during recording
+- if the browser/platform exposes system audio, enable it too
+- run long enough to produce multiple chunks for that share episode
+- the participant stops screen share while the hosted recording run stays active
+- later in the same session, the participant starts screen share again
+- run long enough to produce multiple chunks for the later share episode too
+- host stops recording
+- uploads finish
+
+Pass criteria:
+
+- the screen-sharing participant keeps the same seat ID / LiveKit participant identity throughout
+- the live room shows additional published media without creating a second participant identity
+- the session manifest shows at least 2 distinct `screen` `source_instance_id` values for that seat
+- if system audio was available for a share episode, the manifest shows a paired `system_audio` source instance with the same `capture_group_id`; if unavailable, that absence is explicit and non-failing
+- stopping the first share finishes its track cleanly; it does not become `abandoned` just because the user stopped sharing normally
+- every started extra source uploads more than one chunk
+- final artifact layout groups chunks/manifests by seat, source, source instance, and segment cleanly
+
+### 3. multi-camera path
+
+Goal: prove one seat can publish and record more than one camera source instance at the same time.
+
+Flow:
+
+- start from the happy path
+- one participant, preferably the host, starts recording with a primary camera
+- during recording, that same seat enables a second camera source instance
+- run long enough to produce multiple chunks for both camera source instances
+- optionally stop one camera while the other keeps running
+- host stops recording
+- uploads finish
+
+Pass criteria:
+
+- the multi-camera participant keeps one seat ID / LiveKit participant identity
+- the live room shows multiple published camera tracks under that same participant identity
+- the session manifest shows at least 2 distinct `camera` `source_instance_id` values for that seat
+- each started camera source instance uploads more than one chunk
+- stopping one camera does not interrupt the other camera source instance
+- final artifact layout groups chunks/manifests by seat, source, source instance, and segment cleanly
+
+### 4. guest reconnect during recording
 
 Goal: prove live call, local capture, and upload recover independently.
 
@@ -109,7 +158,7 @@ Pass criteria:
 - final manifest shows one coherent track timeline or an explicit, non-silent split that tooling can understand
 - segment capture offsets stay monotonic and line up on the shared session recording timeline
 
-### 3. upload stall and resume
+### 5. upload stall and resume
 
 Goal: prove a broken upload path does not kill the session or silently drop recorded media.
 
@@ -131,7 +180,7 @@ Pass criteria:
 - manifest makes the interruption explicit
 - final uploaded chunk set is complete or the missing range is explicit and detectable
 
-### 4. active seat takeover during recording
+### 6. active seat takeover during recording
 
 Goal: prove one-seat-one-browser ownership holds under explicit takeover.
 
@@ -152,7 +201,7 @@ Pass criteria:
 - post-takeover chunks are appended as a new explicit segment or otherwise remain non-silent in the manifest
 - any unfinished pre-takeover segment becomes `abandoned`, not silently overwritten
 
-### 5. localized track failure with continued salvage
+### 7. localized track failure with continued salvage
 
 Goal: prove one failed track does not hard-stop unaffected recording and upload work.
 
@@ -174,7 +223,7 @@ Pass criteria:
 - already committed chunks remain present on disk
 - final salvage manifest makes the failed track and any missing ranges explicit
 
-### 6. terminal session-level recording failure
+### 8. terminal session-level recording failure
 
 Goal: prove truly unrecoverable server-side recording failure is explicit and inspectable.
 
@@ -198,19 +247,21 @@ Build this in small increments:
 
 1. **harness foundation**: one command starts the local stack, launches browsers, and emits summary JSON
 2. **happy path**: get one stable green end-to-end run
-3. **reconnect**: add deterministic disconnect/rejoin control
-4. **upload stall/resume**: add deterministic upload failure injection
-5. **seat takeover**: add deterministic second-browser takeover control and stale-claim assertions
-6. **localized track failure**: add deterministic one-track failure injection and degraded-salvage assertions
-7. **terminal failure**: add deterministic session-level failure injection and artifact assertions
-8. **network impairments**: add packet loss, latency, and bandwidth shaping once the basic harness is trustworthy
+3. **repeated screen-share path**: add deterministic display capture and optional system-audio assertions across multiple share episodes
+4. **multi-camera path**: add deterministic extra-camera assertions under one seat identity
+5. **reconnect**: add deterministic disconnect/rejoin control
+6. **upload stall/resume**: add deterministic upload failure injection
+7. **seat takeover**: add deterministic second-browser takeover control and stale-claim assertions
+8. **localized track failure**: add deterministic one-track failure injection and degraded-salvage assertions
+9. **terminal failure**: add deterministic session-level failure injection and artifact assertions
+10. **network impairments**: add packet loss, latency, and bandwidth shaping once the basic harness is trustworthy
 
 The first useful milestone is not a huge matrix. It is one reliable happy-path run plus one reliable failure-mode run.
 
 ## defaults
 
 - run on the developer machine, not a remote VM
-- prefer headless execution with fake media
+- prefer headless execution with fake media, deterministic display capture, and deterministic extra-camera sources
 - keep scenario inputs deterministic
 - prefer one-command execution
 - fail with actionable output and preserved artifacts
