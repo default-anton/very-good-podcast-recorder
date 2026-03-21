@@ -4,6 +4,7 @@ Related docs:
 
 - `docs/architecture.md`
 - `docs/public-networking.md`
+- `docs/operator-cli.md`
 - `docs/identity.md`
 - `docs/session-lifecycle.md`
 - `docs/recording-control-protocol.md`
@@ -23,13 +24,14 @@ The recording/upload contract now exists in `docs/recording-upload-protocol.md`.
 
 The v1 capture profile now exists in `docs/capture-profile.md`.
 
+The deployment/runtime ops contract now exists in `docs/operator-cli.md`.
+
 The next thin specs to lock down are:
 
 1. artifact manifest format
 2. local dev/runtime contract
-3. deployment/runtime ops contract
-4. minimal v1 UX contract
-5. basic non-functional targets
+3. minimal v1 UX contract
+4. basic non-functional targets
 
 Keep them short. Tables and example JSON beat prose.
 
@@ -62,24 +64,7 @@ For milestone 0 and early milestone 1 work, define the boring runtime details up
 
 This is what makes parallel development actually move.
 
-## 3. deployment/runtime ops contract
-
-`docs/public-networking.md` now locks the topology. The remaining thin spec is the operator contract.
-
-Define:
-
-- hostname scheme and which URLs are human-shared vs runtime-only
-- required DNS records
-- edge config inputs
-- TURN mode: co-hosted vs dedicated
-- DigitalOcean sizing knobs for control-plane, TURN, and temporary session hosts
-- replace/recreate flow for TURN on providers without easy vertical resize
-- required env vars/config files/secrets
-- readiness and health endpoints used by provisioning
-
-Without this, deploy work will drift and the control-plane provisioning contract will stay fuzzy.
-
-## 4. minimal v1 UX contract
+## 3. minimal v1 UX contract
 
 Do not overdesign. Do define the minimum workflow.
 
@@ -104,7 +89,7 @@ Also define:
 - guest-visible error states
 - minimum device/setup UI
 
-## 5. basic non-functional targets
+## 4. basic non-functional targets
 
 Set a few concrete targets so "performance first" means something:
 

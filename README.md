@@ -50,6 +50,21 @@ It does this:
 
 It does not try to be a polished studio product yet.
 
+## Setup and operations
+
+The default operator surface for v1 is a laptop-installed CLI: `vgpr`.
+
+- macOS install path: `brew install default-anton/tap/vgpr`
+- local bring-up path: `vgpr setup local`
+- remote-shape development path: `vgpr setup mock`
+- first real hosted path: `vgpr setup do`
+- first real compute provider: DigitalOcean
+- supported DNS providers for the hosted path: Cloudflare DNS and DigitalOcean DNS
+
+The CLI creates the initial admin account during setup. The browser should open to a login page, not to a public first-user-wins setup flow.
+
+See `docs/operator-cli.md` for the operator contract.
+
 ## Likely users
 
 - indie podcasters with remote guests

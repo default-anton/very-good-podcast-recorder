@@ -7,6 +7,7 @@ Related docs:
 - `docs/feedback-loop.md`
 - `docs/testing.md`
 - `docs/public-networking.md`
+- `docs/operator-cli.md`
 - `docs/identity.md`
 - `docs/seat-claim-protocol.md`
 - `docs/session-lifecycle.md`
@@ -43,8 +44,9 @@ Keep public networking persistent too: stable control-plane join links, a persis
 - **file storage**: local disk on the session VM for v1, organized by session/participant/source/source-instance/segment/chunk
 - **edge / tls**: persistent Caddy edge with stable public hostnames and wildcard routing for temporary session backends
 - **turn / nat traversal**: persistent coturn; allow co-hosted installs for tiny deployments, but keep dedicated TURN as the default recommendation once reliability matters
-- **packaging**: Docker Compose for the temporary session server; keep the control plane simple enough to run locally or on a small Ubuntu VM
-- **provisioning**: start with DigitalOcean only, add others later
+- **operator CLI**: local `vgpr` CLI installed on the host laptop; it owns setup, bootstrap, and routine ops
+- **packaging**: Docker Compose for the local stack and temporary session server; the CLI bootstraps remote hosts and then uses the control-plane API for normal operations
+- **provisioning**: implement the mock provider first to lock the flow down; first real compute target is DigitalOcean, with Cloudflare DNS and DigitalOcean DNS both supported
 - **tests**: Go test for backend, Vitest for frontend units, Playwright for host/guest smoke flows
 - **observability**: structured JSON logs, per-track upload counters, explicit session manifests
 

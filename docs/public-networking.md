@@ -3,6 +3,7 @@
 Related docs:
 
 - `docs/architecture.md`
+- `docs/operator-cli.md`
 - `docs/session-lifecycle.md`
 - `docs/testing.md`
 - `docs/database-schema.md`
@@ -57,12 +58,13 @@ Disposable per-session runtime:
 Start with:
 
 - **compute**: DigitalOcean
-- **DNS**: Cloudflare DNS
+- **DNS**: Cloudflare DNS or DigitalOcean DNS
+- **operator surface**: local `vgpr` CLI on the host laptop
 - **edge / TLS**: Caddy
 - **TURN**: coturn
 - **session image**: prebaked DigitalOcean snapshot/image
 
-Use Cloudflare for DNS management, not as the primary media proxy.
+Use the DNS provider's API for record management, not as the primary media proxy.
 
 ## routing model
 
