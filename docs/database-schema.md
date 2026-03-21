@@ -3,6 +3,7 @@
 Related docs:
 
 - `docs/architecture.md`
+- `docs/public-networking.md`
 - `docs/identity.md`
 - `docs/seat-claim-protocol.md`
 - `docs/session-lifecycle.md`
@@ -74,7 +75,7 @@ create table session_servers (
   id text primary key,                  -- Control-plane id for the provisioned server instance.
   session_id text not null unique references sessions(id) on delete cascade,
                                         -- One active temporary server per session in v1.
-  base_url text not null,               -- Public base URL used by browsers and control-plane links.
+  base_url text not null,               -- Public session-runtime base URL/hostname served behind the persistent edge. Used by browser bootstrap/session traffic and runtime operations, not as the human-shared control-plane join link.
   region text,                          -- Placement/debug metadata only.
   state text not null check (state in ('creating', 'ready', 'stopping', 'stopped', 'failed')),
                                         -- creating=provisioning/bootstrap; ready=joinable runtime; stopping=intentional teardown requested; stopped=intentional teardown complete; failed=runtime not trustworthy.

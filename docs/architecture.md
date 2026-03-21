@@ -6,6 +6,7 @@ Related docs:
 - `docs/milestones.md`
 - `docs/feedback-loop.md`
 - `docs/testing.md`
+- `docs/public-networking.md`
 - `docs/identity.md`
 - `docs/seat-claim-protocol.md`
 - `docs/session-lifecycle.md`
@@ -28,6 +29,8 @@ That is the right shape for reliability. A bad live connection must not silently
 
 Keep host orchestration out of the media-critical path: the persistent control plane owns sessions, participant identities, and provisioning; the temporary session server owns the live call and chunk ingest.
 
+Keep public networking persistent too: stable control-plane join links, a persistent edge that owns DNS/TLS, and disposable session backends behind it. Do not make per-session DNS or ACME issuance part of the hot path.
+
 ## stack
 
 - **frontend**: TypeScript, React, Vite; our own control-plane and session UIs
@@ -38,10 +41,10 @@ Keep host orchestration out of the media-critical path: the persistent control p
 - **control-plane state**: SQLite for session metadata, participant identities, and provisioning state
 - **session-local state**: SQLite manifests + local disk for upload progress and track status, keyed by control-plane session/participant IDs
 - **file storage**: local disk on the session VM for v1, organized by session/participant/source/source-instance/segment/chunk
-- **edge / tls**: Caddy
-- **turn / nat traversal**: LiveKit embedded TURN by default; external TURN only if we hit a concrete requirement
+- **edge / tls**: persistent Caddy edge with stable public hostnames and wildcard routing for temporary session backends
+- **turn / nat traversal**: persistent coturn; allow co-hosted installs for tiny deployments, but keep dedicated TURN as the default recommendation once reliability matters
 - **packaging**: Docker Compose for the temporary session server; keep the control plane simple enough to run locally or on a small Ubuntu VM
-- **provisioning**: start with one cloud target only (Hetzner or DigitalOcean), add others later
+- **provisioning**: start with DigitalOcean only, add others later
 - **tests**: Go test for backend, Vitest for frontend units, Playwright for host/guest smoke flows
 - **observability**: structured JSON logs, per-track upload counters, explicit session manifests
 
@@ -73,6 +76,8 @@ Use the LiveKit JS SDK from our session app. Do **not** build the product on top
 
 - **don’t build an SFU first**. LiveKit is the boring choice and buys us reconnects, room semantics, TURN support, and a path to scale.
 - **a persistent control plane** is the right place for host UX, stable participant IDs, and cloud-provider orchestration.
+- **a persistent public edge** keeps DNS and TLS out of per-session provisioning, which is the only sane way to make new recording servers feel instantly available.
+- **persistent TURN with deployment knobs** is the practical compromise for open source: co-host it on tiny installs, split it out when reliability or relay load matters, and make replacement/move operations explicit.
 - **Go for the control plane and upload path** is the better long-term default: simpler deployment, lower overhead on chunk ingest, and still fast to ship.
 - **SQLite + local disk** is enough for v1. Keep durable session and participant state in the control plane; keep only upload-local state on the temporary session server.
 - **Docker Compose on one VM** still matches the temporary server model. The control plane can run on a laptop or a cheap VPS.
@@ -83,8 +88,10 @@ Use the LiveKit JS SDK from our session app. Do **not** build the product on top
 - Lock v1 capture to **one mic source per seat**, **one or more camera source instances per seat**, and **repeatable optional screen-share source instances** with paired best-effort **system audio** when the browser/platform exposes it. Keep **1080p30 video** with **720p30 fallback** and **48 kHz Opus audio** as the baseline. Do **not** chase 2K/4K in the critical path.
 - Model capture as **seat → source type → source instance → segment**. A fresh screen-share start creates a new source instance; a reconnect/restart of the same still-active source creates the next segment for that same source instance.
 - Mint stable participant IDs in the control plane and sync the minimum session/participant snapshot to the temporary server.
+- Share only stable control-plane join links with humans. Treat the temporary session-server URL as internal bootstrap state, not the product surface.
 - Map durable control-plane seat identity into LiveKit tokens and room identity; do not let LiveKit identity become the only source of truth, and do not assume one seat publishes only one media track.
 - Persist upload progress per chunk so refresh/reconnect resumes instead of restarting.
+- Prebake the temporary session-server image. Do not put package install, public DNS creation, or ACME issuance on the session-create critical path.
 - Store an append-only manifest per source-instance segment so incomplete uploads are visible and recoverable.
 - Record browser-monotonic capture offsets relative to the session recording epoch as sync metadata. Do **not** treat server receive time as track timing.
 - Use 2 bearer join links per session (host, guest) plus stable participant seats and per-browser claim secrets for reconnect and takeover handling.
