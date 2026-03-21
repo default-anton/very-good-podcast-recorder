@@ -3,7 +3,6 @@
 Related docs:
 
 - `docs/repo-layout.md`
-- `docs/milestones.md`
 - `docs/feedback-loop.md`
 - `docs/testing.md`
 - `docs/public-networking.md`

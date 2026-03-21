@@ -2,7 +2,7 @@
 
 ## recommendation
 
-Milestone 0 is not optional setup work. It is the mechanism that lets us ship milestones 1+ without slowing down or guessing.
+The engineering baseline is not optional setup work. It is the mechanism that lets us ship the first product slices without slowing down or guessing.
 
 ## goals
 
@@ -58,7 +58,7 @@ Vulnerability scanning belongs in CI first, not the commit hook. It matters, but
 
 ## logging policy
 
-Structured logging starts in milestone 0.
+Structured logging starts in the engineering baseline.
 
 Requirements:
 
@@ -69,7 +69,7 @@ Requirements:
 
 If a flow matters, it needs logs we can grep and machine-parse.
 
-## milestone 0 — engineering baseline
+## engineering baseline
 
 **Goal:** create the minimum quality system that keeps the repo fast and trustworthy.
 
@@ -112,12 +112,12 @@ Keep the public interface small. Prefer commands like:
 
 `scripts/` or package scripts should expose these consistently. Humans and agents should not need to remember tool-specific incantations.
 
-## order of operations
+## recommended implementation order
 
-1. milestone 0 — engineering baseline
-2. milestone 1 — session join loop
-3. milestone 2 — single-participant recording path
-4. milestone 3 — multi-participant happy path
-5. milestone 4 — reconnect during recording
-6. milestone 5 — upload stall and resume
-7. milestone 6 — remote alpha
+1. engineering baseline
+2. session join loop
+3. single-participant recording path
+4. multi-participant happy path
+5. reconnect during recording
+6. upload stall and resume
+7. remote alpha

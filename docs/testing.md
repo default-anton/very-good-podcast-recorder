@@ -256,7 +256,7 @@ Build this in small increments:
 9. **terminal failure**: add deterministic session-level failure injection and artifact assertions
 10. **network impairments**: add packet loss, latency, and bandwidth shaping once the basic harness is trustworthy
 
-The first useful milestone is not a huge matrix. It is one reliable happy-path run plus one reliable failure-mode run.
+The first useful slice is not a huge matrix. It is one reliable happy-path run plus one reliable failure-mode run.
 
 ## defaults
 

@@ -10,11 +10,10 @@ Related docs:
 - `docs/recording-control-protocol.md`
 - `docs/recording-upload-protocol.md`
 - `docs/testing.md`
-- `docs/milestones.md`
 
 ## recommendation
 
-Do not split milestone 1+ feature work too broadly until the remaining contracts below are written down.
+Do not split early feature work too broadly until the remaining contracts below are written down.
 
 The session state machine now exists in `docs/session-lifecycle.md`.
 
@@ -53,7 +52,7 @@ Without this, the harness cannot assert correctness cleanly.
 
 ## 2. local dev/runtime contract
 
-For milestone 0 and early milestone 1 work, define the boring runtime details up front:
+For the engineering baseline and early session-join work, define the boring runtime details up front:
 
 - one-command local boot flow
 - required tool versions
@@ -113,9 +112,9 @@ Do not burn time on:
 
 ## practical call
 
-You can keep coding milestone 0 immediately.
+You can keep coding the engineering baseline immediately.
 
-Before assigning milestone 1+ work in parallel, write the thin specs above. Otherwise the team will drift on:
+Before assigning the session-join slice and later work in parallel, write the thin specs above. Otherwise the team will drift on:
 
 - frontend/backend contracts
 - deploy/provisioning contracts
