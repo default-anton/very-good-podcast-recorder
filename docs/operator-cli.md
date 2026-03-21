@@ -17,6 +17,7 @@ For v1:
 
 - install the CLI on macOS with Homebrew: `brew install default-anton/tap/vgpr`
 - use the CLI for local setup, mock-provider setup, and later DigitalOcean setup
+- bootstrap one persistent deployment that includes the public control plane and a private session-runner
 - let the browser handle the product UI and recording readiness test
 - keep normal operations API-first; use SSH only for bootstrap and recovery
 
@@ -71,7 +72,7 @@ Commands:
 | `setup do` | Provision the real remote deployment on DigitalOcean compute | after mock |
 | `open` | Open the control plane login page | first |
 | `status` | Read current deployment health via the control-plane API | first |
-| `doctor` | Run deeper checks: API, DNS, TLS, TURN, storage, worker health | first |
+| `doctor` | Run deeper checks: API, DNS, TLS, TURN, storage, session-runner health | first |
 | `update` | Trigger a remote app update | after mock |
 | `logs` | Read or follow logs by component | after mock |
 | `backup create` / `backup list` | Create and inspect backups | after mock |
@@ -108,7 +109,7 @@ Purpose: fastest path to a working local stack.
 
 Behavior:
 
-- boots the local control plane and supporting services with the repo's local runtime package
+- boots the local control plane, private session-runner, and supporting services with the repo's local runtime package
 - creates or updates a local deployment profile named `local` unless `--name` is set
 - creates the initial admin account during setup
 - creates an operator API token for later CLI commands
@@ -153,7 +154,7 @@ Behavior:
 
 - provisions DigitalOcean compute
 - configures DNS with either Cloudflare DNS or DigitalOcean DNS
-- bootstraps the server
+- bootstraps the persistent deployment, including the public control plane and private session-runner
 - creates the initial admin account during setup
 - creates an operator API token for later CLI commands
 - waits for readiness, then prints and optionally opens the login URL
@@ -198,6 +199,8 @@ Rules:
 Use API-first operations after setup.
 
 Normal commands like `status`, `doctor`, `update`, `backup`, and `logs` should talk to the control-plane HTTPS API with the stored operator token.
+
+The control plane coordinates the private session-runner. It should not hold the cloud or edge credentials used for per-session runtime lifecycle.
 
 Use SSH only for:
 

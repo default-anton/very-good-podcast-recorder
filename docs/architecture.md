@@ -17,7 +17,7 @@ Related docs:
 
 ## recommendation
 
-Ship v1 as a **persistent host control plane** plus a **single-tenant temporary session server** per recording.
+Ship v1 as a **persistent host control plane**, a **private session-runner**, and a **single-tenant temporary session server** per recording.
 
 Keep the product split into 3 independent paths:
 
@@ -27,7 +27,7 @@ Keep the product split into 3 independent paths:
 
 That is the right shape for reliability. A bad live connection must not silently ruin the local recording, and a stalled upload must not kill the call.
 
-Keep host orchestration out of the media-critical path: the persistent control plane owns sessions, participant identities, and provisioning; the temporary session server owns the live call and chunk ingest.
+Keep host orchestration out of the media-critical path: the persistent control plane owns sessions, participant identities, and provisioning intent/state; the private session-runner owns provider credentials, provisioning, edge route changes, and teardown; the temporary session server owns the live call and chunk ingest.
 
 Keep public networking persistent too: stable control-plane join links, a persistent edge that owns DNS/TLS, and disposable session backends behind it. Do not make per-session DNS or ACME issuance part of the hot path.
 
@@ -36,16 +36,17 @@ Keep public networking persistent too: stable control-plane join links, a persis
 - **frontend**: TypeScript, React, Vite; our own control-plane and session UIs
 - **browser live media client**: LiveKit browser/JS SDK used from the session app
 - **control plane api**: Go, `net/http` + stdlib `ServeMux`
+- **session-runner**: private Go process/service that reconciles provisioning jobs and owns cloud/edge credentials
 - **live media server**: self-hosted **LiveKit** on the temporary session server
 - **session api / upload service**: Go, `net/http` + stdlib `ServeMux`
-- **control-plane state**: SQLite for session metadata, participant identities, and provisioning state
+- **control-plane state**: SQLite for session metadata, participant identities, and provisioning intent/state
 - **session-local state**: SQLite manifests + local disk for upload progress and track status, keyed by control-plane session/participant IDs
 - **file storage**: local disk on the session VM for v1, organized by session/participant/source/source-instance/segment/chunk
 - **edge / tls**: persistent Caddy edge with stable public hostnames and wildcard routing for temporary session backends
 - **turn / nat traversal**: persistent coturn; allow co-hosted installs for tiny deployments, but keep dedicated TURN as the default recommendation once reliability matters
 - **operator CLI**: local `vgpr` CLI installed on the host laptop; it owns setup, bootstrap, and routine ops
-- **packaging**: Docker Compose for the local stack and temporary session server; the CLI bootstraps remote hosts and then uses the control-plane API for normal operations
-- **provisioning**: implement the mock provider first to lock the flow down; first real compute target is DigitalOcean, with Cloudflare DNS and DigitalOcean DNS both supported
+- **packaging**: Docker Compose for the local stack, including the public control plane and private session-runner, plus the temporary session server shape; the CLI bootstraps remote hosts and then uses the control-plane API for normal operations
+- **provisioning**: implement the mock provider first to lock the flow down; the control plane writes provisioning intent and the session-runner reconciles it; first real compute target is DigitalOcean, with Cloudflare DNS and DigitalOcean DNS both supported
 - **tests**: Go test for backend, Vitest for frontend units, Playwright for host/guest smoke flows
 - **observability**: structured JSON logs, per-track upload counters, explicit session manifests
 
@@ -76,7 +77,8 @@ Use the LiveKit JS SDK from our session app. Do **not** build the product on top
 ## why this stack
 
 - **don’t build an SFU first**. LiveKit is the boring choice and buys us reconnects, room semantics, TURN support, and a path to scale.
-- **a persistent control plane** is the right place for host UX, stable participant IDs, and cloud-provider orchestration.
+- **a persistent control plane** is the right place for host UX, stable participant IDs, and provisioning intent/state.
+- **a private session-runner** is the right security boundary for cloud-provider and edge orchestration.
 - **a persistent public edge** keeps DNS and TLS out of per-session provisioning, which is the only sane way to make new recording servers feel instantly available.
 - **persistent TURN with deployment knobs** is the practical compromise for open source: co-host it on tiny installs, split it out when reliability or relay load matters, and make replacement/move operations explicit.
 - **Go for the control plane and upload path** is the better long-term default: simpler deployment, lower overhead on chunk ingest, and still fast to ship.
@@ -89,6 +91,7 @@ Use the LiveKit JS SDK from our session app. Do **not** build the product on top
 - Lock v1 capture to **one mic source per seat**, **one or more camera source instances per seat**, and **repeatable optional screen-share source instances** with paired best-effort **system audio** when the browser/platform exposes it. Keep **1080p30 video** with **720p30 fallback** and **48 kHz Opus audio** as the baseline. Do **not** chase 2K/4K in the critical path.
 - Model capture as **seat → source type → source instance → segment**. A fresh screen-share start creates a new source instance; a reconnect/restart of the same still-active source creates the next segment for that same source instance.
 - Mint stable participant IDs in the control plane and sync the minimum session/participant snapshot to the temporary server.
+- Keep provider and edge credentials out of the public control-plane process. The control plane requests runtime changes; the private session-runner executes them.
 - Share only stable control-plane join links with humans. Treat the temporary session-server URL as internal bootstrap state, not the product surface.
 - Map durable control-plane seat identity into LiveKit tokens and room identity; do not let LiveKit identity become the only source of truth, and do not assume one seat publishes only one media track.
 - Persist upload progress per chunk so refresh/reconnect resumes instead of restarting.

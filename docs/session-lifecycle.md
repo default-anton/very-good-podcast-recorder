@@ -84,7 +84,7 @@ States:
 
 - roster is internally valid and names are unambiguous
 - join links exist and may be shared
-- the control plane may provision the temporary server
+- the control plane may request provisioning of the temporary server through the private session-runner
 - roster may still change
 - join keys may still rotate
 - there is no recording run yet
@@ -159,7 +159,7 @@ States:
 
 Use `session_servers.state = 'failed'` for infrastructure/runtime failure, for example:
 
-- provisioning never completed
+- the session-runner could not complete provisioning
 - the session server process is crash-looping
 - the VM/container is unreachable
 - local session state is unreadable or irrecoverably corrupted
@@ -439,7 +439,7 @@ This keeps the v1 artifact model honest: one session, one hosted recording run, 
 ### normal successful run
 
 1. control-plane session `draft -> ready`
-2. host provisions server: `ready -> active`
+2. host requests server provisioning: `ready -> active`
 3. runtime `creating -> ready`
 4. hosted recording phase `waiting -> recording`
 5. host stops recording: `recording -> draining`

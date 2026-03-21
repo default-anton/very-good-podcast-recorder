@@ -18,6 +18,7 @@ For v1, ship:
 
 - stable control-plane links on one persistent domain
 - a persistent public edge that owns DNS/TLS and routes session traffic
+- a private session-runner that owns provider and edge mutation credentials
 - a persistent TURN deployment with explicit knobs for co-hosted vs dedicated placement
 - temporary session servers that boot fast and never own public certificate lifecycle
 
@@ -43,6 +44,7 @@ That keeps user-facing links stable even if pre-recording provisioning fails and
 Persistent services:
 
 - control plane
+- private session-runner
 - edge / TLS router
 - DNS zone
 - TURN deployment
@@ -66,11 +68,13 @@ Start with:
 
 Use the DNS provider's API for record management, not as the primary media proxy.
 
+Do **not** put compute, DNS, or edge mutation credentials in the public control-plane process. Keep them in the private session-runner.
+
 ## routing model
 
 The edge owns wildcard TLS for `*.sessions.<domain>` and routes by hostname to the currently assigned temporary backend.
 
-The control plane publishes or updates the route only after the temporary backend passes readiness checks.
+The private session-runner publishes or updates the route only after the temporary backend passes readiness checks.
 
 Minimum readiness for `session_servers.state = 'ready'`:
 
@@ -124,12 +128,13 @@ For providers without easy vertical resize, replacement is the expected operatio
 ### session provisioning
 
 1. host creates session; control plane join links are immediately shareable
-2. control plane selects a region and boots a temporary session server from a prebaked image
-3. backend starts `sessiond` + LiveKit and pulls bootstrap state from the control plane
-4. control plane waits for readiness checks
-5. edge route is published for the session hostname
-6. `session_servers.state` becomes `ready`
-7. browsers join through the stable control-plane flow
+2. control plane writes provisioning intent for that session
+3. private session-runner selects a region and boots a temporary session server from a prebaked image
+4. backend starts `sessiond` + LiveKit and pulls bootstrap state from the control plane
+5. private session-runner waits for readiness checks
+6. private session-runner publishes the edge route for the session hostname
+7. `session_servers.state` becomes `ready`
+8. browsers join through the stable control-plane flow
 
 ### retry before recording start
 
