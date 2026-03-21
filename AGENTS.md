@@ -2,7 +2,7 @@
 
 very-good-podcast-recorder is an open-source remote podcast recorder: browser-based session joining via URL, local per-participant tracks, a temporary session server, and host-controlled recording files and workflow.
 
-`README.md` is the current product and scope source of truth.
+`README.md` is the high-level overview of the project.
 
 If you are making architecture, infrastructure, or stack decisions, read `docs/architecture.md` first.
 If you are changing join/session/recording/upload/reconnect flows or the test harness around them, read `docs/testing.md` first.
@@ -22,4 +22,3 @@ If you are changing join/session/recording/upload/reconnect flows or the test ha
 - Prefer boring, observable systems. Critical paths need logs, reproducible tests, or other fast feedback loops.
 - Treat reality-like local end-to-end coverage as part of the product, not test polish. For join/session/recording/upload/reconnect work, prefer a dev-machine harness that runs a real multi-user session against the real local stack over mocks or remote-only manual testing.
 - Changes to session-critical flows are not done with unit tests alone; maintain a scriptable local multi-participant smoke path and extend it for failures that matter (disconnects, packet loss, stalled uploads, resume/retry).
-- Keep the join flow simple: hosts and guests should be able to join a session from a browser via URL without infrastructure access or manual setup.
