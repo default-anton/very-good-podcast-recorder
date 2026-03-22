@@ -76,19 +76,19 @@ If a flow matters, it needs logs we can grep and machine-parse.
 **Must ship:**
 
 - initial repo skeleton matching `docs/repo-layout.md`
-- initial setup for the main surfaces: `web/control/`, `web/session/`, `cmd/controlplane/`, `cmd/sessiond/`, `e2e/`, `deploy/`, `scripts/`
+- initial setup for the main surfaces: `web/control/`, `web/session/`, `cmd/controlplane/`, `cmd/sessionrunner/`, `cmd/sessiond/`, `cmd/vgpr/`, `e2e/`, `deploy/`, `scripts/`
 - formatter configured and runnable from one stable command
 - linter configured and runnable from one stable command
 - pre-commit hooks via `prek`
 - test command shape defined, even if the first suite is small
 - CI runs formatter, linter, tests, and vulnerability scan
-- structured logging conventions documented for backend and harness code
+- structured logging conventions documented for backend, CLI, and harness code
 - bootstrap instructions so a new contributor can install deps and run the default checks quickly
 
 **Done when:**
 
 - a contributor can clone the repo, install dependencies, and discover the default checks quickly
-- the repo already has the expected top-level structure for backend, frontend, harness, deploy, and scripts work
+- the repo already has the expected top-level structure for backend, frontend, CLI, harness, deploy, and scripts work
 - staged frontend files are auto-formatted and linted before commit
 - CI blocks merges on broken formatting, lint, tests, or critical dependency issues
 - new code has an obvious place to put machine-readable logs
