@@ -1,5 +1,10 @@
 # testing plan
 
+Related docs:
+
+- `docs/README.md`
+- `docs/artifact-manifest.md`
+
 ## recommendation
 
 Build and keep one scriptable **dev-machine multi-participant harness** as the default feedback loop for session-critical work.
@@ -52,8 +57,8 @@ Every run should produce text-first artifacts that an agent can inspect without 
 - harness summary JSON with pass/fail plus per-participant status
 - structured control-plane, app, session-server, and LiveKit-related logs with session and participant IDs
 - explicit mapping of seat ID → LiveKit participant identity in the summary or logs
-- session manifest showing `recording_epoch_id`, expected participants, expected baseline sources per seat, started source instances per seat, per-track `source_instance_id` / optional `capture_group_id`, capture offset ranges, chunk counts, final `recording_state`, and final `recording_health`
-- per-track upload manifest showing append order and any resume/retry events
+- `session.json` showing `recording_epoch_id`, expected participants, expected baseline sources per seat, started source instances per seat, per-track `source_instance_id` / optional `capture_group_id`, capture offset ranges, chunk counts, final `recording_state`, and final `recording_health`
+- `track.json` per track segment showing final chunk order, `artifact_status`, and explicit salvage metadata; resume/retry detail may live here or in structured logs
 - artifact listing for the final downloadable session folder
 
 A run is not complete if the only proof is "the UI looked right".

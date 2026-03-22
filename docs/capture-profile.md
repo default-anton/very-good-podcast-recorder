@@ -6,6 +6,7 @@ Related docs:
 - `docs/architecture.md`
 - `docs/recording-control-protocol.md`
 - `docs/recording-upload-protocol.md`
+- `docs/artifact-manifest.md`
 - `docs/testing.md`
 - `docs/remaining-specs.md`
 
@@ -127,7 +128,7 @@ At minimum, the final artifact metadata should include per track:
 - actual audio sample rate when observable
 - actual audio channel count when observable
 
-The exact manifest/schema can land with the artifact manifest spec. The product decision is locked now: support per-seat `mic`, one or more `camera` source instances, repeatable optional `screen` source instances, and optional best-effort paired `system_audio` source instances, while preserving the actual negotiated result for each recorded source instance.
+The exact manifest/schema is owned by `docs/artifact-manifest.md`. The product decision is locked now: support per-seat `mic`, one or more `camera` source instances, repeatable optional `screen` source instances, and optional best-effort paired `system_audio` source instances, while preserving the actual negotiated result for each recorded source instance.
 
 ## non-goals for v1
 

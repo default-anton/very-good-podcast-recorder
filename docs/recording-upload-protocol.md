@@ -4,6 +4,7 @@ Related docs:
 
 - `docs/README.md`
 - `docs/capture-profile.md`
+- `docs/artifact-manifest.md`
 - `docs/session-lifecycle.md`
 - `docs/seat-claim-protocol.md`
 - `docs/recording-control-protocol.md`
@@ -25,7 +26,7 @@ This doc owns the upload wire contract, idempotency rules, and server-side track
 
 The canonical recording artifact is:
 
-- raw chunk files on disk
+- raw chunk files on disk plus `session.json` / `track.json` per `docs/artifact-manifest.md`
 - `recording_tracks`
 - `track_chunks`
 

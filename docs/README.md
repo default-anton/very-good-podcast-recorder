@@ -41,6 +41,7 @@ Rule:
 | `docs/capture-profile.md` | v1 source model and capture targets/fallbacks |
 | `docs/recording-control-protocol.md` | recording start/stop, session snapshot, clock-sync protocol |
 | `docs/recording-upload-protocol.md` | track start/upload/finish protocol and upload idempotency |
+| `docs/artifact-manifest.md` | on-disk artifact layout, manifest JSON, status values, file naming |
 
 ## backlog
 
