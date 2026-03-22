@@ -64,7 +64,7 @@ The default operator surface for v1 is a laptop-installed CLI: `vgpr`.
 
 The CLI creates the initial admin account during setup. The browser should open to a login page, not to a public first-user-wins setup flow.
 
-See `docs/operator-cli.md` for the operator contract.
+See `docs/README.md` for the docs map and `docs/operator-cli.md` for the operator contract.
 
 ## Likely users
 

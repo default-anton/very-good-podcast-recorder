@@ -2,11 +2,11 @@
 
 Related docs:
 
+- `docs/README.md`
 - `docs/architecture.md`
 - `docs/public-networking.md`
 - `docs/operator-cli.md`
 - `docs/session-lifecycle.md`
-- `docs/testing.md`
 
 ## recommendation
 
@@ -43,10 +43,9 @@ For v1, a temporary session server is exactly:
 - one pinned `sessiond` binary
 - local SQLite + local artifact disk
 - no Redis on the temporary server
-- no public TLS termination on the temporary server
 - no provider, DNS, or edge-mutation credentials on the temporary server
 
-Persistent edge/TLS and persistent TURN stay outside this box.
+Public hostname ownership, TLS termination, and TURN placement are defined in `docs/public-networking.md`.
 
 ## release artifact
 
@@ -89,7 +88,7 @@ Keep the bundle self-contained enough that the VM does not need package-manager 
 7. `sessiond` exchanges the single-use bootstrap credential for the complete session snapshot plus any runtime-scoped credential it still needs, then deletes the bootstrap credential from disk
 8. `sessiond` verifies local disk, initializes the session-local SQLite state, checks local reachability to LiveKit, and exposes a machine-readable readiness endpoint
 9. session-runner polls readiness
-10. only after readiness passes does the session-runner publish the edge route and mark `session_servers.state = 'ready'`
+10. session-runner publishes the public route only after readiness passes, per `docs/public-networking.md`
 
 ## systemd units
 
@@ -119,10 +118,9 @@ Use:
 - direct host networking on the VM
 - the normal WebRTC UDP range
 - TCP fallback enabled
-- our persistent TURN deployment advertised as client TURN where needed
+- the persistent TURN deployment from `docs/public-networking.md` where needed
 
 Do **not** add Redis to the temporary server until we actually need multi-node LiveKit or a Redis-dependent side service.
-
 Do **not** use LiveKit egress as the primary recording path.
 
 ## readiness contract

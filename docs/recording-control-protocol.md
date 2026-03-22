@@ -2,12 +2,12 @@
 
 Related docs:
 
-- `docs/architecture.md`
-- `docs/database-schema.md`
-- `docs/identity.md`
-- `docs/seat-claim-protocol.md`
+- `docs/README.md`
 - `docs/session-lifecycle.md`
+- `docs/seat-claim-protocol.md`
+- `docs/identity.md`
 - `docs/recording-upload-protocol.md`
+- `docs/capture-profile.md`
 - `docs/testing.md`
 
 ## recommendation
@@ -35,21 +35,22 @@ It does **not** define:
 
 - join and seat-claim semantics
 - upload/chunk ingest semantics
-- LiveKit room events
+- lifecycle escalation rules beyond this protocol surface
 - post-process export jobs
 
 ## auth
 
 All endpoints are same-origin session-server endpoints.
 
-Authentication uses the active claimed-seat cookie from the join/rejoin flow defined in `docs/seat-claim-protocol.md`.
+Authentication uses the active claimed-seat cookie from `docs/seat-claim-protocol.md`.
+Role meaning comes from `docs/identity.md`.
 
-Rules:
+Protocol-specific rules:
 
 - requests without a valid claimed seat fail with `401`
 - any claimed seat may read session state and call clock sync
 - only a claimed `host` seat may start or stop recording
-- a valid LiveKit room connection alone is **not** sufficient for these endpoints
+- a LiveKit room connection alone is **not** sufficient
 
 ## recording epoch
 
@@ -108,10 +109,9 @@ or
 ### response rules
 
 - `role` reflects the claimed seat role, not a client-provided hint
-- `recording_state` is the phase; `recording_health` is the artifact trust level
-- `recording_health = 'degraded'` means the run is damaged but still being salvaged under the current phase rules
+- `recording_state` and `recording_health` use the state model from `docs/session-lifecycle.md`
 - `recording_epoch_id` and `recording_epoch_started_at` are both `null` before recording starts
-- once recording starts, both remain set for the rest of the session lifecycle
+- once recording starts, both remain set for the rest of the hosted run
 
 ### 2. start recording
 
@@ -174,7 +174,7 @@ No body.
 - caller must own any claimed seat for this session
 - allowed only when `recording_epoch_id` exists
 - allowed when `recording_state` is `recording` or `draining`
-- `recording_health` may be `healthy` or `degraded`; degraded runs still need clock sync for salvageable ongoing capture
+- degraded runs still allow clock sync for salvageable ongoing capture
 
 ### success response
 
@@ -263,23 +263,16 @@ If the session is `failed`, return `409`.
 }
 ```
 
-## session state rules
+## lifecycle ownership
 
-This doc relies on the hosted recording lifecycle locked in `docs/session-lifecycle.md`.
+`docs/session-lifecycle.md` is the source of truth for:
 
-The relevant phase transitions are:
+- valid `recording_state` transitions
+- valid `recording_health` transitions
+- `degraded` versus `failed`
+- when the hosted run becomes `stopped`
 
-- `waiting -> recording` on accepted host `start`
-- `recording -> draining` on accepted host `stop`
-- `draining -> stopped` when all started tracks are terminal and the server can still expose a truthful final salvage manifest
-- `waiting | recording | draining -> failed` on session-level terminal recording failure
-
-The relevant health transitions are:
-
-- `healthy -> degraded` on localized track/session damage that is still salvageable
-- `healthy | degraded -> failed` on unrecoverable session-level failure
-
-The session server owns `healthy -> degraded`, `-> stopped`, and `-> failed`. Browsers only request `start` and `stop`.
+This protocol only defines how browsers observe or request those state changes.
 
 ## error contract
 
@@ -310,12 +303,11 @@ Use the same error shape as `docs/recording-upload-protocol.md`.
 3. host calls `POST /api/v1/session-recording/start`
 4. browsers observe `recording_state = 'recording'` via `GET /api/v1/session` or an equivalent real-time update
 5. each browser runs 3 to 5 `POST /api/v1/session-recording/clock-sync` probes
-6. each browser starts local recorders for whichever v1 source instances are active: baseline `mic`, one or more `camera` source instances, and any optional `screen` + best-effort paired `system_audio` source instances
-7. while `recording_state = 'recording'`, participants may start and stop optional source instances, especially screen share, multiple times without affecting the hosted recording run itself
-8. browsers upload track segments using `docs/recording-upload-protocol.md`
-9. host calls `POST /api/v1/session-recording/stop`
-10. session remains `draining` until uploads reach terminal state
-11. session becomes `stopped`; final `recording_health` tells the host whether the artifact set is clean (`healthy`) or salvage-only (`degraded`)
+6. each browser starts whatever local source instances are active per `docs/capture-profile.md`
+7. browsers upload track segments using `docs/recording-upload-protocol.md`
+8. host calls `POST /api/v1/session-recording/stop`
+9. session remains `draining` until uploads reach terminal state
+10. session becomes `stopped`; final `recording_health` tells the host whether the artifact set is clean (`healthy`) or salvage-only (`degraded`)
 
 ## non-goals for v1
 

@@ -2,57 +2,45 @@
 
 Related docs:
 
-- `docs/architecture.md`
-- `docs/public-networking.md`
-- `docs/operator-cli.md`
-- `docs/identity.md`
-- `docs/session-lifecycle.md`
-- `docs/recording-control-protocol.md`
-- `docs/recording-upload-protocol.md`
+- `docs/README.md`
+- `docs/feedback-loop.md`
 - `docs/testing.md`
 
 ## recommendation
 
-Do not split early feature work too broadly until the remaining contracts below are written down.
+Keep the remaining contracts thin.
 
-The session state machine now exists in `docs/session-lifecycle.md`.
+Everything already specified should stay in its existing source-of-truth doc from `docs/README.md`. Do **not** restate those contracts here.
 
-The recording control contract now exists in `docs/recording-control-protocol.md`.
-
-The recording/upload contract now exists in `docs/recording-upload-protocol.md`.
-
-The v1 capture profile now exists in `docs/capture-profile.md`.
-
-The deployment/runtime ops contract now exists in `docs/operator-cli.md`.
-
-The next thin specs to lock down are:
+The remaining missing docs are:
 
 1. artifact manifest format
 2. local dev/runtime contract
 3. minimal v1 UX contract
 4. basic non-functional targets
 
-Keep them short. Tables and example JSON beat prose.
+Tables and example JSON beat prose.
 
 ## 1. artifact manifest format
 
-The docs already say "session folder + manifest." Now lock the shape down.
+Need one doc that locks down:
 
-Define:
-
-- session directory layout, including seat/source/source-instance/segment/chunk organization
+- session directory layout on disk
 - session manifest JSON schema
-- per-source-track manifest JSON schema
+- per-track manifest JSON schema
 - status values for complete/partial/missing/failed
 - file naming conventions
-- source-instance identity fields, at minimum `source_instance_id` plus optional `capture_group_id` for paired screen/system-audio episodes
-- actual negotiated capture settings recorded per source track, at minimum the browser-reported source, kind, mime type, and observed width/height/fps/sample rate/channel count when available
+- actual negotiated capture settings recorded per track
 
-Without this, the harness cannot assert correctness cleanly.
+Why this still matters:
+
+- the harness needs exact assertions
+- download/output tooling needs one stable shape
+- degraded and failed results need explicit machine-readable salvage metadata
 
 ## 2. local dev/runtime contract
 
-For the engineering baseline and early session-join work, define the boring runtime details up front:
+Need one doc that locks down:
 
 - one-command local boot flow
 - required tool versions
@@ -61,43 +49,42 @@ For the engineering baseline and early session-join work, define the boring runt
 - which services run locally
 - where logs and artifacts land
 
-This is what makes parallel development actually move.
+Why this still matters:
+
+- parallel development stays slow until boot/run conventions are boring
+- CI and the local harness need the same runtime assumptions
 
 ## 3. minimal v1 UX contract
 
-Do not overdesign. Do define the minimum workflow.
+Need one doc that locks down the minimum user-visible workflow for:
 
-Host flow:
+- host session creation and sharing
+- guest device/setup/join flow
+- host recording controls and participant state
+- reconnect, recovery, and error states
+- final artifact download flow
 
-- create session
-- share URL
-- start recording
-- stop recording
-- download artifact
+Why this still matters:
 
-Guest flow:
-
-- open URL
-- grant permissions
-- join
-- recover from reconnect
-
-Also define:
-
-- host-visible participant and recording state
-- guest-visible error states
-- minimum device/setup UI
+- backend and frontend work will drift without one shared product contract
+- the testing harness needs known user-visible checkpoints
 
 ## 4. basic non-functional targets
 
-Set a few concrete targets so "performance first" means something:
+Need one doc that locks down a small set of targets for:
 
-- target browsers for v1
+- supported browsers for v1
 - max participants for v1
 - expected recording duration
-- minimum reconnect behavior
+- reconnect expectations
 - acceptable upload lag/backlog
-- temp-server disk assumptions
+- temporary-server disk assumptions
+- performance budgets that matter for low-end hardware
+
+Why this still matters:
+
+- “performance first” is not actionable until the budgets are written down
+- operators need concrete resource expectations
 
 ## what not to define yet
 
@@ -112,12 +99,6 @@ Do not burn time on:
 
 ## practical call
 
-You can keep coding the engineering baseline immediately.
+Keep shipping against the current contracts.
 
-Before assigning the session-join slice and later work in parallel, write the thin specs above. Otherwise the team will drift on:
-
-- frontend/backend contracts
-- deploy/provisioning contracts
-- harness assertions
-- artifact format
-- what "done" means
+When one of the four missing areas above starts blocking implementation or tests, write **one** new owning doc for it and add it to `docs/README.md`.

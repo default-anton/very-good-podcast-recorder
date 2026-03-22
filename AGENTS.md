@@ -3,7 +3,9 @@
 very-good-podcast-recorder is an open-source remote podcast recorder: browser-based session joining via URL, local per-participant tracks, a temporary session server, and host-controlled recording files and workflow.
 
 `README.md` is the high-level overview of the project.
+`docs/README.md` is the docs map and source-of-truth index for the rest of `docs/`.
 
+If you need a spec or are updating docs, start with `docs/README.md` and follow the owning doc.
 If you are making architecture, infrastructure, or stack decisions, read `docs/architecture.md` first.
 If you are changing join/session/recording/upload/reconnect flows or the test harness around them, read `docs/testing.md` first.
 

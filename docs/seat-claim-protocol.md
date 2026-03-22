@@ -2,7 +2,7 @@
 
 Related docs:
 
-- `docs/architecture.md`
+- `docs/README.md`
 - `docs/identity.md`
 - `docs/database-schema.md`
 - `docs/session-lifecycle.md`
@@ -22,11 +22,14 @@ Keep claim ownership separate from LiveKit transport state.
 
 The seat claim is the app-level source of truth for:
 
-- who owns a seat
+- which browser owns a seat
 - which browser may mint or refresh the LiveKit token for that seat
 - which browser may call recording and upload endpoints for that seat
 
 A LiveKit room connection alone never proves seat ownership.
+
+Identity meaning, role model, and LiveKit identity mapping live in `docs/identity.md`.
+This doc owns the claim state machine, liveness, and wire contract.
 
 ## scope
 
@@ -46,22 +49,6 @@ It does **not** define:
 - recording start/stop or clock sync
 - chunk upload semantics
 - control-plane session provisioning
-
-## identity model
-
-There are 3 independent credentials:
-
-1. **join key**: bearer access to one role group in one session
-2. **seat id**: durable runtime identity for media, uploads, and manifests
-3. **claim secret**: proof that one browser currently owns one seat
-
-Rules:
-
-- the join key grants access to the seat picker for one role only
-- the claim secret grants ownership of one seat only
-- upload and recording endpoints authenticate with the claim secret cookie, not the join key
-- token minting for LiveKit happens only after a seat claim succeeds
-- every claim-secret rotation invalidates the old browser immediately
 
 ## seat-claim state model
 
@@ -99,8 +86,6 @@ Rules:
 - a claim heartbeat updates `last_seen_at`
 - moving to `disconnected` clears `current_connection_id`
 - `disconnected` does **not** rotate the claim secret by itself
-
-This is the v1 bad-network rule: brief reconnects should keep the same seat without forcing takeover UX.
 
 ## seat picker states
 
@@ -207,20 +192,9 @@ Claims an `available` seat or recovers a `rejoin_available` seat onto the curren
 
 ### successful behavior
 
-If the seat is `available`:
+If the seat is `available` or `rejoin_available`, the server must:
 
 - mint a fresh claim secret
-- hash and store it
-- increment `claim_version`
-- set `state = 'active'`
-- set `last_seen_at`
-- clear or replace `current_connection_id`
-- set the secure claim cookie
-- mint and return the LiveKit token for that seat
-
-If the seat is `rejoin_available`:
-
-- mint a **new** claim secret
 - hash and store it
 - increment `claim_version`
 - set `state = 'active'`

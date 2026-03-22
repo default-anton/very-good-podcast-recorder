@@ -2,12 +2,11 @@
 
 Related docs:
 
+- `docs/README.md`
 - `docs/architecture.md`
-- `docs/operator-cli.md`
 - `docs/session-server-bootstrap.md`
+- `docs/operator-cli.md`
 - `docs/session-lifecycle.md`
-- `docs/testing.md`
-- `docs/database-schema.md`
 
 ## recommendation
 
@@ -62,27 +61,26 @@ Start with:
 
 - **compute**: DigitalOcean
 - **DNS**: Cloudflare DNS or DigitalOcean DNS
-- **operator surface**: local `vgpr` CLI on the host laptop
 - **edge / TLS**: Caddy
 - **TURN**: coturn
 - **session server base image**: stock provider Ubuntu LTS image
 
-Use the DNS provider's API for record management, not as the primary media proxy.
+Use the DNS provider API for record management, not as the primary media proxy.
 
-Do **not** put compute, DNS, or edge mutation credentials in the public control-plane process. Keep them in the private session-runner.
+Operator workflow and CLI contract live in `docs/operator-cli.md`.
+Bootstrap details for the temporary server live in `docs/session-server-bootstrap.md`.
 
 ## routing model
 
 The edge owns wildcard TLS for `*.sessions.<domain>` and routes by hostname to the currently assigned temporary backend.
 
-The private session-runner publishes or updates the route only after the temporary backend passes readiness checks.
+The private session-runner publishes or updates the route only after the temporary backend passes the readiness contract from `docs/session-server-bootstrap.md`.
 
-Minimum readiness for `session_servers.state = 'ready'`:
+Minimum routing rule:
 
-- backend API healthy
-- session snapshot synced
-- LiveKit ready
-- upload endpoints ready
+- no public session route before readiness passes
+- route swap is the last step before `session_servers.state = 'ready'`
+- route removal happens before intentional teardown completes
 
 ## TURN deployment modes
 
@@ -122,17 +120,15 @@ The product should let operators:
 
 Treat TURN as replaceable infrastructure, not a hand-managed pet box.
 
-For providers without easy vertical resize, replacement is the expected operation.
-
 ## provisioning flow
 
 ### session provisioning
 
-1. host creates session; control plane join links are immediately shareable
+1. host creates session; control-plane join links are immediately shareable
 2. control plane writes provisioning intent for that session
-3. private session-runner selects a region and boots a temporary session server from the stock provider image with cloud-init user-data
-4. backend bootstrap installs the pinned session-server bundle, starts `sessiond` + LiveKit under systemd, and pulls bootstrap state from the control plane
-5. private session-runner waits for readiness checks
+3. private session-runner selects a region and boots a temporary session server
+4. temporary-server bootstrap runs per `docs/session-server-bootstrap.md`
+5. private session-runner waits for readiness
 6. private session-runner publishes the edge route for the session hostname
 7. `session_servers.state` becomes `ready`
 8. browsers join through the stable control-plane flow
