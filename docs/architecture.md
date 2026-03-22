@@ -6,6 +6,7 @@ Related docs:
 - `docs/feedback-loop.md`
 - `docs/testing.md`
 - `docs/public-networking.md`
+- `docs/session-server-bootstrap.md`
 - `docs/operator-cli.md`
 - `docs/identity.md`
 - `docs/seat-claim-protocol.md`
@@ -37,7 +38,7 @@ Keep public networking persistent too: stable control-plane join links, a persis
 - **browser live media client**: LiveKit browser/JS SDK used from the session app
 - **control plane api**: Go, `net/http` + stdlib `ServeMux`
 - **session-runner**: private Go process/service that reconciles provisioning jobs and owns cloud/edge credentials
-- **live media server**: self-hosted **LiveKit** on the temporary session server
+- **live media server**: self-hosted **LiveKit** on the temporary session server, initially single-node without Redis
 - **session api / upload service**: Go, `net/http` + stdlib `ServeMux`
 - **control-plane state**: SQLite for session metadata, participant identities, and provisioning intent/state
 - **session-local state**: SQLite manifests + local disk for upload progress and track status, keyed by control-plane session/participant IDs
@@ -45,7 +46,7 @@ Keep public networking persistent too: stable control-plane join links, a persis
 - **edge / tls**: persistent Caddy edge with stable public hostnames and wildcard routing for temporary session backends
 - **turn / nat traversal**: persistent coturn; allow co-hosted installs for tiny deployments, but keep dedicated TURN as the default recommendation once reliability matters
 - **operator CLI**: local `vgpr` CLI installed on the host laptop; it owns setup, bootstrap, and routine ops
-- **packaging**: Docker Compose for the local stack, including the public control plane and private session-runner, plus the temporary session server shape; the CLI bootstraps remote hosts and then uses the control-plane API for normal operations
+- **packaging**: Docker Compose for the local stack. Remote temporary session servers boot from a stock Ubuntu LTS image via cloud-init and run `livekit-server` + `sessiond` under systemd from a versioned release bundle; the CLI bootstraps remote hosts and then uses the control-plane API for normal operations
 - **provisioning**: implement the mock provider first to lock the flow down; the control plane writes provisioning intent and the session-runner reconciles it; first real compute target is DigitalOcean, with Cloudflare DNS and DigitalOcean DNS both supported
 - **tests**: Go test for backend, Vitest for frontend units, Playwright for host/guest smoke flows
 - **observability**: structured JSON logs, per-track upload counters, explicit session manifests
@@ -83,7 +84,7 @@ Use the LiveKit JS SDK from our session app. Do **not** build the product on top
 - **persistent TURN with deployment knobs** is the practical compromise for open source: co-host it on tiny installs, split it out when reliability or relay load matters, and make replacement/move operations explicit.
 - **Go for the control plane and upload path** is the better long-term default: simpler deployment, lower overhead on chunk ingest, and still fast to ship.
 - **SQLite + local disk** is enough for v1. Keep durable session and participant state in the control plane; keep only upload-local state on the temporary session server.
-- **Docker Compose on one VM** still matches the temporary server model. The control plane can run on a laptop or a cheap VPS.
+- **Docker Compose** is for the local stack and persistent deployment only. The disposable session server should stay 2 systemd-managed binaries on a stock VM.
 
 ## implementation notes
 
@@ -95,7 +96,7 @@ Use the LiveKit JS SDK from our session app. Do **not** build the product on top
 - Share only stable control-plane join links with humans. Treat the temporary session-server URL as internal bootstrap state, not the product surface.
 - Map durable control-plane seat identity into LiveKit tokens and room identity; do not let LiveKit identity become the only source of truth, and do not assume one seat publishes only one media track.
 - Persist upload progress per chunk so refresh/reconnect resumes instead of restarting.
-- Prebake the temporary session-server image. Do not put package install, public DNS creation, or ACME issuance on the session-create critical path.
+- Bootstrap the temporary session server from a stock Ubuntu LTS image with cloud-init, a versioned release bundle, and systemd. Do **not** put package install, Docker image pulls, public DNS creation, or ACME issuance on the session-create critical path.
 - Store an append-only manifest per source-instance segment so incomplete uploads are visible and recoverable.
 - Record browser-monotonic capture offsets relative to the session recording epoch as sync metadata. Do **not** treat server receive time as track timing.
 - Use 2 bearer join links per session (host, guest) plus stable participant seats and per-browser claim secrets for reconnect and takeover handling.

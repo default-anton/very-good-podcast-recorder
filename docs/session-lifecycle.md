@@ -4,6 +4,7 @@ Related docs:
 
 - `docs/architecture.md`
 - `docs/database-schema.md`
+- `docs/session-server-bootstrap.md`
 - `docs/seat-claim-protocol.md`
 - `docs/recording-control-protocol.md`
 - `docs/recording-upload-protocol.md`
@@ -143,6 +144,7 @@ States:
 #### `creating`
 
 - browsers must not attempt to join
+- stock-image bootstrap, bundle install, and systemd startup may still be in progress
 - roster and join auth snapshot must be fully loaded before `ready`
 
 #### `ready`
@@ -161,7 +163,7 @@ Use `session_servers.state = 'failed'` for infrastructure/runtime failure, for e
 
 - the session-runner could not complete provisioning
 - the session server process is crash-looping
-- the VM/container is unreachable
+- the VM is unreachable
 - local session state is unreadable or irrecoverably corrupted
 - the control plane cannot reliably determine whether the runtime is still serving the session
 

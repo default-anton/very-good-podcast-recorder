@@ -4,6 +4,7 @@ Related docs:
 
 - `docs/architecture.md`
 - `docs/operator-cli.md`
+- `docs/session-server-bootstrap.md`
 - `docs/session-lifecycle.md`
 - `docs/testing.md`
 - `docs/database-schema.md`
@@ -64,7 +65,7 @@ Start with:
 - **operator surface**: local `vgpr` CLI on the host laptop
 - **edge / TLS**: Caddy
 - **TURN**: coturn
-- **session image**: prebaked DigitalOcean snapshot/image
+- **session server base image**: stock provider Ubuntu LTS image
 
 Use the DNS provider's API for record management, not as the primary media proxy.
 
@@ -129,8 +130,8 @@ For providers without easy vertical resize, replacement is the expected operatio
 
 1. host creates session; control plane join links are immediately shareable
 2. control plane writes provisioning intent for that session
-3. private session-runner selects a region and boots a temporary session server from a prebaked image
-4. backend starts `sessiond` + LiveKit and pulls bootstrap state from the control plane
+3. private session-runner selects a region and boots a temporary session server from the stock provider image with cloud-init user-data
+4. backend bootstrap installs the pinned session-server bundle, starts `sessiond` + LiveKit under systemd, and pulls bootstrap state from the control plane
 5. private session-runner waits for readiness checks
 6. private session-runner publishes the edge route for the session hostname
 7. `session_servers.state` becomes `ready`
@@ -171,4 +172,4 @@ Set these targets for the first real deployment slice:
 - pre-recording reprovision keeps the same human join link
 - one scripted remote smoke path proves create → provision → join → record → upload → stop
 
-If cold boot is too slow, the next optimization is warm standby capacity in one region. Do not add that before measuring.
+If cold boot is too slow, the next optimization is warm standby capacity in one region. Do not add custom images before measuring that the stock-image bootstrap path is actually the bottleneck.

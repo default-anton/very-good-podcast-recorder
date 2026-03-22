@@ -4,6 +4,7 @@ Related docs:
 
 - `docs/architecture.md`
 - `docs/public-networking.md`
+- `docs/session-server-bootstrap.md`
 - `docs/testing.md`
 - `docs/session-lifecycle.md`
 
@@ -155,6 +156,7 @@ Behavior:
 - provisions DigitalOcean compute
 - configures DNS with either Cloudflare DNS or DigitalOcean DNS
 - bootstraps the persistent deployment, including the public control plane and private session-runner
+- records the default stock-image + cloud-init session-server bootstrap settings used for temporary recording servers
 - creates the initial admin account during setup
 - creates an operator API token for later CLI commands
 - waits for readiness, then prints and optionally opens the login URL
