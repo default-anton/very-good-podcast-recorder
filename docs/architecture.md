@@ -4,6 +4,8 @@ Related docs:
 
 - `docs/README.md`
 - `docs/repo-layout.md`
+- `docs/local-stack.md`
+- `docs/version-pins.md`
 - `docs/feedback-loop.md`
 - `docs/testing.md`
 - `docs/public-networking.md`
@@ -144,6 +146,8 @@ Use the other docs for the detailed contracts:
 - capture/source model → `docs/capture-profile.md`
 - recording state and clock sync → `docs/recording-control-protocol.md`
 - track/chunk upload protocol → `docs/recording-upload-protocol.md`
+- local boot/runtime contract → `docs/local-stack.md`
+- version policy and version pins → `docs/version-pins.md`
 - local harness and scenario coverage → `docs/testing.md`
 
 ## why this shape

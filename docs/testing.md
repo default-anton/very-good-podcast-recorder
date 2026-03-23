@@ -3,6 +3,7 @@
 Related docs:
 
 - `docs/README.md`
+- `docs/local-stack.md`
 - `docs/artifact-manifest.md`
 
 ## recommendation
@@ -20,7 +21,7 @@ For this product, unit tests are necessary but insufficient. The recording path 
 
 ## first harness
 
-The first harness should run the **real local stack**, not mocks:
+The first harness should run the **real local stack** from `docs/local-stack.md`, not mocks:
 
 - control plane web app + API
 - browser session app

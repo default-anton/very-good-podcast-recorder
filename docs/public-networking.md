@@ -4,6 +4,8 @@ Related docs:
 
 - `docs/README.md`
 - `docs/architecture.md`
+- `docs/local-stack.md`
+- `docs/version-pins.md`
 - `docs/session-server-bootstrap.md`
 - `docs/operator-cli.md`
 - `docs/session-lifecycle.md`
@@ -69,6 +71,7 @@ Use the DNS provider API for record management, not as the primary media proxy.
 
 Operator workflow and CLI contract live in `docs/operator-cli.md`.
 Bootstrap details for the temporary server live in `docs/session-server-bootstrap.md`.
+Version pins for Caddy and coturn live in `docs/version-pins.md`.
 
 ## routing model
 

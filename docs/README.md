@@ -14,6 +14,8 @@ Rule:
 | --- | --- |
 | `docs/architecture.md` | top-level system shape, component boundaries, stack choices |
 | `docs/repo-layout.md` | repo/package layout |
+| `docs/local-stack.md` | local boot flow, profiles, env/config, port map, local logs/state/artifacts |
+| `docs/version-pins.md` | host toolchain and third-party component version pins |
 | `docs/feedback-loop.md` | local quality loop, hooks, CI, logging baseline |
 | `docs/testing.md` | end-to-end harness shape and required scenarios |
 

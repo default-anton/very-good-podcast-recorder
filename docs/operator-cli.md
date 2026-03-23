@@ -3,9 +3,11 @@
 Related docs:
 
 - `docs/architecture.md`
+- `docs/local-stack.md`
 - `docs/public-networking.md`
 - `docs/session-server-bootstrap.md`
 - `docs/testing.md`
+- `docs/version-pins.md`
 - `docs/session-lifecycle.md`
 
 ## recommendation
@@ -32,6 +34,7 @@ For v1:
 brew install default-anton/tap/vgpr
 
 vgpr setup local
+vgpr setup local --profile edge
 vgpr setup mock --name demo
 vgpr setup do --name prod --domain app.example.com --dns-provider cloudflare
 
@@ -110,7 +113,8 @@ Purpose: fastest path to a working local stack.
 
 Behavior:
 
-- boots the local control plane, private session-runner, and supporting services with the repo's local runtime package
+- boots the local control plane, private session-runner, and supporting services with the repo's local stack package
+- uses the local stack contract from `docs/local-stack.md`
 - creates or updates a local deployment profile named `local` unless `--name` is set
 - creates the initial admin account during setup
 - creates an operator API token for later CLI commands
@@ -121,6 +125,7 @@ Key flags:
 | Flag | Meaning |
 | --- | --- |
 | `--name <name>` | Deployment profile name; default `local` |
+| `--profile <core|edge>` | Local stack profile; `core` for normal dev, `edge` to add Caddy + coturn; default `core` |
 | `--admin-email <email>` | Initial admin email |
 | `--admin-username <name>` | Initial admin username |
 | `--admin-password-file <path>` | Read initial admin password from file |

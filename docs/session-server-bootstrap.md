@@ -6,6 +6,7 @@ Related docs:
 - `docs/architecture.md`
 - `docs/public-networking.md`
 - `docs/operator-cli.md`
+- `docs/version-pins.md`
 - `docs/session-lifecycle.md`
 
 ## recommendation
@@ -58,6 +59,8 @@ Bundle contents:
 - default config templates
 - systemd unit templates
 - a manifest with exact versions and SHA256 checksums
+
+The chosen third-party version pins live in `docs/version-pins.md`.
 
 Install layout:
 
