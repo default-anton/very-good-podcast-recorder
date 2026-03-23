@@ -8,6 +8,7 @@ Related docs:
 - `docs/operator-cli.md`
 - `docs/version-pins.md`
 - `docs/session-lifecycle.md`
+- `docs/releases.md`
 
 ## recommendation
 
@@ -51,6 +52,7 @@ Public hostname ownership, TLS termination, and TURN placement are defined in `d
 ## release artifact
 
 The session-runner should bootstrap from **one versioned release bundle** per session-server build, not from ad hoc package installs.
+The published asset naming and release manifest contract live in `docs/releases.md`.
 
 Bundle contents:
 

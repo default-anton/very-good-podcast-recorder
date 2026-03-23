@@ -56,15 +56,18 @@ It does not try to be a polished studio product yet.
 The default operator surface for v1 is a laptop-installed CLI: `vgpr`.
 
 - macOS install path: `brew install default-anton/tap/vgpr`
+- CLI upgrade path: `brew upgrade vgpr`
 - local bring-up path: `vgpr setup local`
 - remote-shape development path: `vgpr setup mock`
 - first real hosted path: `vgpr setup do`
+- update discovery path: `vgpr status` shows the deployed version and whether a newer release exists
+- app update path: `vgpr update` backs up the control-plane SQLite state, applies control-plane migrations, restarts the persistent services, and leaves already-running temporary session servers alone
 - first real compute provider: DigitalOcean
 - supported DNS providers for the hosted path: Cloudflare DNS and DigitalOcean DNS
 
 The CLI creates the initial admin account during setup. The browser should open to a login page, not to a public first-user-wins setup flow.
 
-See `docs/README.md` for the docs map and `docs/operator-cli.md` for the operator contract.
+See `docs/README.md` for the docs map, `docs/operator-cli.md` for the CLI contract, and `docs/releases.md` for release discovery and update behavior.
 
 ## Likely users
 

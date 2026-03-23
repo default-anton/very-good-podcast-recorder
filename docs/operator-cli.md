@@ -9,6 +9,8 @@ Related docs:
 - `docs/testing.md`
 - `docs/version-pins.md`
 - `docs/session-lifecycle.md`
+- `docs/database-schema.md`
+- `docs/releases.md`
 
 ## recommendation
 
@@ -32,6 +34,7 @@ For v1:
 
 ```bash
 brew install default-anton/tap/vgpr
+brew upgrade vgpr
 
 vgpr setup local
 vgpr setup local --profile edge
@@ -41,6 +44,7 @@ vgpr setup do --name prod --domain app.example.com --dns-provider cloudflare
 vgpr open
 vgpr status
 vgpr doctor
+vgpr update --dry-run
 vgpr update
 vgpr logs --component controlplane --follow
 vgpr backup create
@@ -227,9 +231,20 @@ If a routine day-2 command needs SSH, the product surface is wrong.
 
 ### `vgpr status`
 
-- fetches a compact state summary: version, reachable URL, service health, disk free space, recent backup status, active sessions
+- fetches a compact state summary: deployed version, latest available version, reachable URL, service health, disk free space, recent backup status, active sessions
 - read-only
 - exit code is `0` if the request succeeded, even if the deployment is degraded; health is reported in the payload
+- if update discovery fails, still return the deployment summary and print the release-check warning on stderr
+
+### release discovery
+
+Use the release feed and versioned manifest from `docs/releases.md`.
+
+Rules:
+
+- `vgpr status` and `vgpr update --dry-run` fetch the `stable` release feed and report `current_version`, `latest_version`, and `update_available`
+- when a newer release exists, human output should end with the exact next step: `brew upgrade vgpr && vgpr update`
+- the browser may surface the same signal later, but the CLI is the source of truth for v1
 
 ### `vgpr doctor`
 
@@ -244,6 +259,10 @@ If a routine day-2 command needs SSH, the product surface is wrong.
 - state-changing
 - must be idempotent for the same target version
 - should support `--dry-run` and a later `--version <version>` override
+- must refuse to run while any session is `active` or still draining uploads
+- follows the persistent update contract from `docs/releases.md`
+- updates only the persistent deployment; already-running temporary session servers finish on the bundle version they started with
+- if post-update checks fail after a schema migration committed, recovery is restore-from-backup, not down-migrations
 
 ### `vgpr logs`
 
@@ -309,7 +328,7 @@ Precedence: flags > env > user config > built-in defaults.
 ### user config
 
 - path: `~/.config/vgpr/config.toml`
-- stores non-secret defaults only, for example preferred region, default DNS provider, and output mode
+- stores non-secret defaults only, for example preferred region, default DNS provider, output mode, and an override release feed base URL for development or CI
 
 ### deployment state
 
@@ -331,6 +350,7 @@ Environment variables may override non-secret defaults only:
 - `VGPR_CONFIG`
 - `VGPR_NO_BROWSER=1`
 - `VGPR_OUTPUT=json|plain|human`
+- `VGPR_RELEASE_BASE_URL=https://...` for local release-feed testing or CI
 
 ## safety rules
 

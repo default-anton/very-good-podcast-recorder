@@ -9,6 +9,7 @@ Related docs:
 - `docs/repo-layout.md`
 - `docs/testing.md`
 - `docs/version-pins.md`
+- `docs/releases.md`
 
 ## recommendation
 
@@ -48,7 +49,7 @@ CLI-wide config and output precedence still follows `docs/operator-cli.md`.
 
 | Surface | Path or vars |
 | --- | --- |
-| CLI env vars | `VGPR_DEPLOYMENT`, `VGPR_CONFIG`, `VGPR_NO_BROWSER`, `VGPR_OUTPUT` |
+| CLI env vars | `VGPR_DEPLOYMENT`, `VGPR_CONFIG`, `VGPR_NO_BROWSER`, `VGPR_OUTPUT`, `VGPR_RELEASE_BASE_URL` |
 | repo-local overrides | `.env.local` (not committed) |
 | committed local stack assets | `deploy/local/` |
 | generated local service config | `.vgpr/local/config/` |
@@ -73,6 +74,16 @@ Bind TCP listeners to `127.0.0.1` by default.
 | Caddy HTTPS (`edge`) | `8443` |
 | coturn TCP/UDP (`edge`) | `3478` |
 | coturn TLS (`edge`) | `5349` |
+
+## development schema iteration
+
+Local and mock development may use the `down` side of goose migrations while iterating on SQLite schema changes, per `docs/releases.md` and `docs/database-schema.md`.
+
+Rules:
+
+- use `down` only against disposable local or mock databases
+- never treat `down` as the production rollback path
+- if a migration gets messy, prefer resetting the local deployment over pretending a risky rollback is safe
 
 ## logs, state, and artifacts
 

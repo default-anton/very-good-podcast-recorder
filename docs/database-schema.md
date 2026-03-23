@@ -9,12 +9,32 @@ Related docs:
 - `docs/session-lifecycle.md`
 - `docs/recording-control-protocol.md`
 - `docs/recording-upload-protocol.md`
+- `docs/operator-cli.md`
+- `docs/releases.md`
 
 ## recommendation
 
 Keep the **control-plane** and **session-server** schemas explicit and separate.
 
 Use this doc as the schema source of truth for v1. Keep identity and permissions in `docs/identity.md`, seat-claim transitions in `docs/seat-claim-protocol.md`, and cross-layer state transitions in `docs/session-lifecycle.md`.
+
+## migration policy
+
+Use `pressly/goose` with SQL migration files.
+Do **not** build a custom migration tool.
+
+For v1:
+
+- keep separate migration directories for the persistent control plane and the temporary session server, for example `db/migrations/controlplane` and `db/migrations/sessiond`
+- use numbered SQL files such as `00001_init.sql`
+- each reversible migration should include both `-- +goose Up` and `-- +goose Down`
+- embed those migrations into the Go binaries so `setup` and `update` do not depend on an extra operator-installed tool
+- production bootstrap and `vgpr update` run `up` only; down migrations are for disposable local and mock databases during development iteration
+- run control-plane migrations during bootstrap and `vgpr update`
+- run session-server migrations only during fresh server bootstrap before readiness, per `docs/session-server-bootstrap.md`
+- do **not** in-place migrate an already-running temporary session server in v1
+- if a control-plane schema migration committed and the release must be backed out, restore from backup; do **not** rely on production `down` migrations
+- the full release and rollback contract lives in `docs/releases.md`
 
 ## control-plane schema
 

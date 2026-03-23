@@ -26,6 +26,7 @@ Rule:
 | `docs/public-networking.md` | public hostnames, persistent edge, TURN placement, route publication |
 | `docs/session-server-bootstrap.md` | temporary session-server bootstrap chain, bundle layout, readiness contract |
 | `docs/operator-cli.md` | operator-facing CLI UX, commands, flags, output, safety rules |
+| `docs/releases.md` | release versioning, published artifacts, update discovery, and persistent update contract |
 
 ## session auth and state
 

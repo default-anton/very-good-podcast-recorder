@@ -21,6 +21,13 @@ Do **not** introduce workspaces, shared packages, extra services, or separate re
 │   ├── recordings/       # recording lifecycle, track state
 │   ├── sessions/         # temporary session state synced from control plane
 │   └── uploads/          # chunk ingest, resume, retry bookkeeping
+├── db/
+│   └── migrations/
+│       ├── controlplane/ # goose SQL migrations for the persistent control-plane SQLite DB
+│       └── sessiond/     # goose SQL migrations for the temporary session-server SQLite DB
+├── releases/
+│   ├── stable.json       # latest stable release feed consumed by `vgpr status`
+│   └── manifests/        # immutable per-version release manifests committed with each release
 ├── web/
 │   ├── control/          # host control plane web app
 │   ├── session/          # browser join/room/recording app
@@ -32,8 +39,9 @@ Do **not** introduce workspaces, shared packages, extra services, or separate re
 │   ├── local/            # local stack packaging, Compose, and dev-runtime assets
 │   ├── caddy/            # persistent edge / TLS router config
 │   ├── livekit/          # shared/local LiveKit config
+│   ├── host/             # persistent deployment systemd/config templates and host-bundle inputs
 │   └── session-server/   # cloud-init, systemd, config templates, bootstrap assets, release-bundle inputs
-├── scripts/              # stable one-command dev and CI entrypoints
+├── scripts/              # stable one-command dev, CI, and release entrypoints
 ├── testdata/             # backend fixtures and golden manifests
 └── docs/
 ```
@@ -41,11 +49,13 @@ Do **not** introduce workspaces, shared packages, extra services, or separate re
 ## rules
 
 - `cmd/` stays thin. Business logic lives under `internal/`. CLI and services are sibling binaries.
+- `db/migrations/` is the only home for schema migrations. Keep control-plane and session-server histories separate.
+- `releases/` is the only home for machine-readable public release metadata. Keep the mutable stable feed and immutable per-version manifests there.
 - `web/` owns both browser surfaces: the host control plane and the participant session app.
 - `web/tests/` is for frontend-local tests. The reality-like multi-participant harness lives in `e2e/`.
 - `e2e/` is part of the product, not optional test polish.
-- `deploy/` owns only what is required to boot the local stack, the persistent edge, and one temporary session server. Keep session-server bootstrap assets together instead of scattering them across the repo.
-- `scripts/` is the public interface for humans and CI. Prefer a few stable commands over many ad hoc ones.
+- `deploy/` owns only what is required to boot the local stack, the persistent host, the persistent edge, and one temporary session server. Keep host and session-server release inputs together instead of scattering them across the repo.
+- `scripts/` is the public interface for humans, CI, and release publication. Prefer a few stable commands over many ad hoc ones.
 
 ## avoid for now
 

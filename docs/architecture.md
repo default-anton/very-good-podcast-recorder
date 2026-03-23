@@ -11,6 +11,7 @@ Related docs:
 - `docs/public-networking.md`
 - `docs/session-server-bootstrap.md`
 - `docs/operator-cli.md`
+- `docs/releases.md`
 - `docs/identity.md`
 - `docs/session-lifecycle.md`
 - `docs/database-schema.md`
