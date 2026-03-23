@@ -92,7 +92,7 @@ These stay persistent so session creation does not depend on fresh DNS or ACME w
 
 ## stack
 
-- **frontend**: TypeScript, React, Vite
+- **frontend**: TypeScript, React, Vite, `tsgo` for type checks
 - **browser live media client**: LiveKit browser/JS SDK
 - **control plane API**: Go, `net/http` + stdlib `ServeMux`
 - **session-runner**: private Go service

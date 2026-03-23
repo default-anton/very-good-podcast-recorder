@@ -31,6 +31,7 @@ Versions below were verified from upstream registries/releases on 2026-03-22.
 | Node.js LTS | `24.14.0` |
 | pnpm | `10.32.1` |
 | Playwright | `1.58.2` |
+| tsgo (`@typescript/native-preview`) | `7.0.0-dev.20260322.1` |
 | oxlint | `1.56.0` |
 | oxfmt | `0.41.0` |
 | prek | `0.3.6` |

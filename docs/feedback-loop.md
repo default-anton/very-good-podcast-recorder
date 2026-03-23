@@ -26,6 +26,7 @@ For frontend, use:
 
 - **Oxfmt** for formatting
 - **Oxlint** for linting
+- **tsgo** for type checks
 - **prek** for pre-commit hooks
 
 ## hook policy
@@ -79,6 +80,7 @@ If a flow matters, it needs logs we can grep and machine-parse.
 - initial setup for the main surfaces: `web/control/`, `web/session/`, `cmd/controlplane/`, `cmd/sessionrunner/`, `cmd/sessiond/`, `cmd/vgpr/`, `e2e/`, `deploy/`, `scripts/`
 - formatter configured and runnable from one stable command
 - linter configured and runnable from one stable command
+- type checks configured and runnable from one stable command via `tsgo`
 - pre-commit hooks via `prek`
 - test command shape defined, even if the first suite is small
 - CI runs formatter, linter, tests, and vulnerability scan
@@ -105,6 +107,7 @@ Keep the public interface small. Prefer commands like:
 
 - `format`
 - `lint`
+- `typecheck`
 - `test`
 - `test:unit`
 - `test:e2e`

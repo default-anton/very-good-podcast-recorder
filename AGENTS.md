@@ -22,8 +22,8 @@ Run the narrowest checks that prove the touched path before handoff:
 go test ./path/to/package
 pnpm exec vitest run web/tests/path/to/spec.ts
 pnpm exec playwright test e2e/scenarios/<scenario>.spec.ts
-pnpm exec tsc --noEmit -p web/control/tsconfig.json
-pnpm exec tsc --noEmit -p web/session/tsconfig.json
+pnpm exec tsgo --noEmit -p web/control/tsconfig.json
+pnpm exec tsgo --noEmit -p web/session/tsconfig.json
 pnpm exec oxlint path/to/file.tsx
 pnpm exec oxfmt --check path/to/file.tsx
 ```
