@@ -20,6 +20,5 @@ Related docs:
 ## still missing
 
 1. minimal v1 UX contract
-2. basic non-functional targets
 
 When one of the remaining areas is defined, add its owning doc to `docs/README.md` and replace the item here with a link.
