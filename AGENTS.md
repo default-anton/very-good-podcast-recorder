@@ -14,6 +14,26 @@ If you are changing join/session/recording/upload/reconnect flows or the test ha
 - Repo is bootstrap-only right now. Keep the first implementation simple and easy to evolve.
 - Add structure, tooling, and dependencies only when they directly help ship the next demoable slice.
 
+## Fast feedback loop (required)
+
+Run the narrowest checks that prove the touched path before handoff:
+
+```bash
+go test ./path/to/package
+pnpm exec vitest run web/tests/path/to/spec.ts
+pnpm exec playwright test e2e/scenarios/<scenario>.spec.ts
+pnpm exec tsc --noEmit -p web/control/tsconfig.json
+pnpm exec tsc --noEmit -p web/session/tsconfig.json
+pnpm exec oxlint path/to/file.tsx
+pnpm exec oxfmt --check path/to/file.tsx
+```
+
+Prefer focused runs over full-suite runs unless requested.
+
+If you touch join/session/recording/upload/reconnect flows, also run the relevant local harness scenario from `docs/testing.md` and inspect the summary JSON/logs.
+
+If the repo does not have the narrow command you need yet, add it as part of the bootstrap work instead of falling back to broad or manual-only validation.
+
 ## Top priorities / invariants
 
 - Reliability, robustness, and stability first.
