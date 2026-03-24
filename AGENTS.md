@@ -10,11 +10,6 @@ If you need a spec or are updating docs, start with `docs/README.md` and follow 
 If you are making architecture, infrastructure, or stack decisions, read `docs/architecture.md` first.
 If you are changing join/session/recording/upload/reconnect flows or the test harness around them, read `docs/testing.md` first.
 
-## Current state
-
-- Repo is bootstrap-only right now. Keep the first implementation simple and easy to evolve.
-- Add structure, tooling, and dependencies only when they directly help ship the next demoable slice.
-
 ## Fast feedback loop (required)
 
 Run the narrowest checks that prove the touched path before handoff:
