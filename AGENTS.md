@@ -4,6 +4,7 @@ very-good-podcast-recorder is an open-source remote podcast recorder: browser-ba
 
 `README.md` is the high-level overview of the project.
 `docs/README.md` is the docs map and source-of-truth index for the rest of `docs/`.
+`docs/implementation-status.md` owns the temporary convention for marking which spec docs and sections are implemented.
 
 If you need a spec or are updating docs, start with `docs/README.md` and follow the owning doc.
 If you are making architecture, infrastructure, or stack decisions, read `docs/architecture.md` first.
@@ -33,6 +34,8 @@ Prefer focused runs over full-suite runs unless requested.
 If you touch join/session/recording/upload/reconnect flows, also run the relevant local harness scenario from `docs/testing.md` and inspect the summary JSON/logs.
 
 If the repo does not have the narrow command you need yet, add it as part of the bootstrap work instead of falling back to broad or manual-only validation.
+
+Before handoff, the last step is to update the relevant docs and status markers in `docs/README.md` and the owning spec per `docs/implementation-status.md`.
 
 ## Top priorities / invariants
 
