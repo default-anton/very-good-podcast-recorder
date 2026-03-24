@@ -16,9 +16,8 @@ Related docs:
 - local boot/runtime contract → `docs/local-stack.md`
 - version pins → `docs/version-pins.md`
 - artifact manifest format → `docs/artifact-manifest.md`
+- minimal v1 UX contract → `docs/ux-contract.md`
 
 ## still missing
 
-1. minimal v1 UX contract
-
-When one of the remaining areas is defined, add its owning doc to `docs/README.md` and replace the item here with a link.
+None currently.

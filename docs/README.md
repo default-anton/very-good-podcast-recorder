@@ -13,6 +13,7 @@ Rule:
 | Doc | Owns |
 | --- | --- |
 | `docs/architecture.md` | top-level system shape, component boundaries, stack choices |
+| `docs/ux-contract.md` | v1 host/guest UX surface, required screens, status model, failure language |
 | `docs/repo-layout.md` | repo/package layout |
 | `docs/local-stack.md` | local boot flow, profiles, env/config, port map, local logs/state/artifacts |
 | `docs/version-pins.md` | host toolchain and third-party component version pins |
