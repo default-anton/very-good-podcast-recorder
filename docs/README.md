@@ -15,6 +15,12 @@ Rules:
 | --- | --- |
 | `docs/implementation-status.md` | temporary convention for marking which spec docs and sections are implemented |
 
+## planning
+
+| Path | Owns |
+| --- | --- |
+| `docs/issues/*.md` | draft GitHub issues and execution slices; the specs below stay the source of truth |
+
 ## product shape
 
 | Doc | Owns | Impl |
