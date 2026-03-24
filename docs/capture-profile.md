@@ -8,7 +8,6 @@ Related docs:
 - `docs/recording-upload-protocol.md`
 - `docs/artifact-manifest.md`
 - `docs/testing.md`
-- `docs/remaining-specs.md`
 
 ## recommendation
 

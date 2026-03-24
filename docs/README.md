@@ -47,12 +47,6 @@ Rule:
 | `docs/recording-upload-protocol.md` | track start/upload/finish protocol and upload idempotency |
 | `docs/artifact-manifest.md` | on-disk artifact layout, manifest JSON, status values, file naming |
 
-## backlog
-
-| Doc | Owns |
-| --- | --- |
-| `docs/remaining-specs.md` | thin contracts still missing |
-
 ## editing rule
 
 Before expanding a doc, check whether the information already belongs to another doc above.
