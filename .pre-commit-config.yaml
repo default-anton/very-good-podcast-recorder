@@ -1,0 +1,33 @@
+repos:
+  - repo: local
+    hooks:
+      - id: go-format
+        name: go-format
+        entry: ./scripts/prek-go-format
+        language: system
+        files: \.go$
+      - id: go-check
+        name: go-check
+        entry: ./scripts/prek-go-check
+        language: system
+        files: \.go$
+      - id: frontend-format
+        name: frontend-format
+        entry: ./scripts/prek-frontend-format
+        language: system
+        files: ^(web/.*\.(ts|tsx)|e2e/.*\.(ts|tsx)|playwright\.config\.ts|vitest\.config\.ts)$
+      - id: frontend-lint
+        name: frontend-lint
+        entry: ./scripts/prek-frontend-lint
+        language: system
+        files: ^(web/.*\.(ts|tsx)|e2e/.*\.(ts|tsx)|playwright\.config\.ts|vitest\.config\.ts)$
+      - id: frontend-check
+        name: frontend-check
+        entry: ./scripts/prek-frontend-check
+        language: system
+        files: ^(web/.*\.(ts|tsx)|vitest\.config\.ts|tsconfig\.base\.json|package\.json|pnpm-lock\.yaml)$
+      - id: merge-conflict
+        name: merge-conflict
+        entry: ./scripts/prek-merge-conflict
+        language: system
+        files: .

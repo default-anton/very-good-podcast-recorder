@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -eq 0 ]]; then
+  exit 0
+fi
+
+files=()
+for file in "$@"; do
+  case "$file" in
+    *.go)
+      files+=("$file")
+      ;;
+  esac
+done
+
+if [[ ${#files[@]} -eq 0 ]]; then
+  exit 0
+fi
+
+gofmt -w "${files[@]}"

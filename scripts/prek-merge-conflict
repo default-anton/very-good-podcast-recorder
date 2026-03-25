@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+matches=$(git grep -n -I -e '^<<<<<<< ' -e '^=======$' -e '^>>>>>>> ' --cached -- . || true)
+
+if [[ -n "$matches" ]]; then
+  printf 'merge conflict markers found in staged content:\n%s\n' "$matches" >&2
+  exit 1
+fi

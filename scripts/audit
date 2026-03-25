@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+govulncheck_version="v1.1.4"
+
+go run "golang.org/x/vuln/cmd/govulncheck@${govulncheck_version}" ./...
+pnpm audit --audit-level critical

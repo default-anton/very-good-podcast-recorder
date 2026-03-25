@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mode="write"
+if [[ "${1:-}" == "--check" ]]; then
+  mode="check"
+fi
+
+mapfile -t go_files < <(fd -t f -e go . cmd internal)
+mapfile -t frontend_files < <(fd -t f -e ts -e tsx . web e2e)
+frontend_files+=(playwright.config.ts vitest.config.ts)
+
+if [[ ${#go_files[@]} -gt 0 ]]; then
+  if [[ "$mode" == "check" ]]; then
+    gofmt_output=$(gofmt -l "${go_files[@]}")
+    if [[ -n "$gofmt_output" ]]; then
+      printf 'gofmt needs updates for:\n%s\n' "$gofmt_output" >&2
+      exit 1
+    fi
+  else
+    gofmt -w "${go_files[@]}"
+  fi
+fi
+
+if [[ ${#frontend_files[@]} -gt 0 ]]; then
+  if [[ "$mode" == "check" ]]; then
+    pnpm exec oxfmt --check "${frontend_files[@]}"
+  else
+    pnpm exec oxfmt --write "${frontend_files[@]}"
+  fi
+fi

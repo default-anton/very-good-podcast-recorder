@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+pnpm exec tsgo --noEmit -p web/control/tsconfig.json
+pnpm exec tsgo --noEmit -p web/session/tsconfig.json

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+go vet ./...
+
+mapfile -t frontend_files < <(fd -t f -e ts -e tsx . web e2e)
+frontend_files+=(playwright.config.ts vitest.config.ts)
+
+if [[ ${#frontend_files[@]} -gt 0 ]]; then
+  pnpm exec oxlint "${frontend_files[@]}"
+fi

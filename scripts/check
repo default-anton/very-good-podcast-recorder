@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+./scripts/format --check
+./scripts/lint
+./scripts/typecheck
+./scripts/test
