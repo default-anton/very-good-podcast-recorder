@@ -23,28 +23,37 @@ Exact implementation pins still live in lockfiles, image tags, and release manif
 
 Versions below were verified from upstream registries/releases on 2026-03-22.
 
-## host toolchain
+## host toolchain [done]
 
-| Tool | Version |
-| --- | --- |
-| Go | `1.26.1` |
-| Node.js LTS | `24.14.0` |
-| pnpm | `10.32.1` |
-| Playwright | `1.58.2` |
+| Tool                                | Version                |
+| ----------------------------------- | ---------------------- |
+| Go                                  | `1.26.1`               |
+| Node.js LTS                         | `24.14.0`              |
+| pnpm                                | `10.32.1`              |
+| fd                                  | `10.4.2`               |
+| Playwright                          | `1.58.2`               |
 | tsgo (`@typescript/native-preview`) | `7.0.0-dev.20260322.1` |
-| oxlint | `1.56.0` |
-| oxfmt | `0.41.0` |
-| prek | `0.3.6` |
+| oxlint                              | `1.56.0`               |
+| oxfmt                               | `0.41.0`               |
+| prek                                | `0.3.6`                |
+| govulncheck                         | `v1.1.4`               |
+
+Bootstrap implementation notes:
+
+- `mise.toml` pins Go, Node.js, pnpm, and helper CLIs for contributors who use `mise`
+- `go.mod` pins the Go toolchain used for module commands
+- `scripts/audit` pins `govulncheck` for deterministic vulnerability scans
+- root `package.json` pins Playwright, tsgo, oxlint, oxfmt, and prek in the lockfile-managed frontend toolchain
 
 ## shipped runtime components
 
-| Surface | Version | Notes |
-| --- | --- | --- |
-| React | `19.2.4` |  |
-| Vite | `8.0.1` |  |
-| Vitest | `4.1.0` |  |
-| LiveKit Server | `1.9.12` |  |
-| LiveKit JS client | `2.17.3` |  |
-| SQLite | `3.51.3` |  |
-| Caddy | `2.11.2` | persistent edge or local `edge` profile |
-| coturn | `4.9.0` | persistent TURN or local `edge` profile |
+| Surface           | Version  | Notes                                   |
+| ----------------- | -------- | --------------------------------------- |
+| React             | `19.2.4` |                                         |
+| Vite              | `8.0.1`  |                                         |
+| Vitest            | `4.1.0`  |                                         |
+| LiveKit Server    | `1.9.12` |                                         |
+| LiveKit JS client | `2.17.3` |                                         |
+| SQLite            | `3.51.3` |                                         |
+| Caddy             | `2.11.2` | persistent edge or local `edge` profile |
+| coturn            | `4.9.0`  | persistent TURN or local `edge` profile |

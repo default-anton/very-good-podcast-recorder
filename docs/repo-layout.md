@@ -1,6 +1,6 @@
 # recommended repo layout
 
-## recommendation
+## recommendation [done]
 
 Keep one repo with one persistent control plane, one private session-runner, one temporary session service, one operator CLI, and one end-to-end harness.
 
@@ -17,10 +17,12 @@ Do **not** introduce workspaces, shared packages, extra services, or separate re
 │   ├── artifacts/        # session manifests, download assembly, file layout per docs/artifact-manifest.md
 │   ├── auth/             # signed join tokens, roles
 │   ├── controlplane/     # sessions, participants, provisioning intent/state
+│   ├── logging/          # structured log helpers and stable field names for services, CLI, and harness
 │   ├── provisioning/     # provider adapters, runner jobs, reconciliation
 │   ├── recordings/       # recording lifecycle, track state
 │   ├── sessions/         # temporary session state synced from control plane
-│   └── uploads/          # chunk ingest, resume, retry bookkeeping
+│   ├── uploads/          # chunk ingest, resume, retry bookkeeping
+│   └── vgpr/             # operator CLI surface and command wiring
 ├── db/
 │   └── migrations/
 │       ├── controlplane/ # goose SQL migrations for the persistent control-plane SQLite DB
@@ -46,7 +48,7 @@ Do **not** introduce workspaces, shared packages, extra services, or separate re
 └── docs/
 ```
 
-## rules
+## rules [done]
 
 - `cmd/` stays thin. Business logic lives under `internal/`. CLI and services are sibling binaries.
 - `db/migrations/` is the only home for schema migrations. Keep control-plane and session-server histories separate.

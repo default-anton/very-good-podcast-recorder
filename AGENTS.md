@@ -12,16 +12,20 @@ If you are changing join/session/recording/upload/reconnect flows or the test ha
 
 ## Fast feedback loop (required)
 
+Use `mise exec -- ...` for toolchain commands.
+
 Run the narrowest checks that prove the touched path before handoff:
 
 ```bash
-go test ./path/to/package
-pnpm exec vitest run web/tests/path/to/spec.ts
-pnpm exec playwright test e2e/scenarios/<scenario>.spec.ts
-pnpm exec tsgo --noEmit -p web/control/tsconfig.json
-pnpm exec tsgo --noEmit -p web/session/tsconfig.json
-pnpm exec oxlint path/to/file.tsx
-pnpm exec oxfmt --check path/to/file.tsx
+mise exec -- gofmt -w path/to/file.go
+mise exec -- go vet ./path/to/package
+mise exec -- go test ./path/to/package
+mise exec -- pnpm exec vitest run web/tests/path/to/spec.ts
+mise exec -- pnpm exec playwright test e2e/scenarios/<scenario>.spec.ts
+mise exec -- pnpm exec tsgo --noEmit -p web/control/tsconfig.json
+mise exec -- pnpm exec tsgo --noEmit -p web/session/tsconfig.json
+mise exec -- pnpm exec oxlint path/to/file.tsx
+mise exec -- pnpm exec oxfmt --check path/to/file.tsx
 ```
 
 Prefer focused runs over full-suite runs unless requested.

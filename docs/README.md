@@ -27,10 +27,10 @@ Rules:
 | --- | --- | --- |
 | `docs/architecture.md` | top-level system shape, component boundaries, stack choices | |
 | `docs/ux-contract.md` | v1 host/guest UX surface, required screens, status model, failure language | |
-| `docs/repo-layout.md` | repo/package layout | |
+| `docs/repo-layout.md` | repo/package layout | done |
 | `docs/local-stack.md` | local boot flow, profiles, env/config, port map, local logs/state/artifacts | |
 | `docs/version-pins.md` | host toolchain and third-party component version pins | |
-| `docs/feedback-loop.md` | local quality loop, hooks, CI, logging baseline | |
+| `docs/feedback-loop.md` | local quality loop, hooks, CI, logging baseline | done |
 | `docs/testing.md` | end-to-end harness shape and required scenarios | |
 
 ## deployment and ops

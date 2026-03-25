@@ -52,7 +52,7 @@ vgpr restore backup_2026-03-20T18-42-11Z
 vgpr destroy --confirm-name prod
 ```
 
-## usage
+## usage [done]
 
 ```text
 vgpr [global flags] <command> [args]
@@ -71,6 +71,8 @@ Commands:
   help <command>          Show command help
 ```
 
+Bootstrap slice note: the top-level command tree, `--help`, `help <command>`, `--version`, and global flag parsing are wired. Subcommands still return explicit stub errors until the local and remote deployment flows land.
+
 ## command status
 
 | Command | Purpose | v1 implementation order |
@@ -87,7 +89,7 @@ Commands:
 | `restore` | Restore a named backup | later v1 |
 | `destroy` | Tear down local or remote deployment | after mock |
 
-## global flags
+## global flags [done]
 
 | Flag | Meaning |
 | --- | --- |

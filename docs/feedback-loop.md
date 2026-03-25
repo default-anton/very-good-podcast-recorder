@@ -13,7 +13,7 @@ Optimize for:
 - text-first signals an agent can inspect
 - safe defaults before the first real feature lands
 
-## local loop
+## local loop [done]
 
 Every developer should have a small, boring default loop:
 
@@ -22,14 +22,17 @@ Every developer should have a small, boring default loop:
 3. run relevant tests for changed code
 4. inspect structured logs when something fails
 
-For frontend, use:
+Use:
 
-- **Oxfmt** for formatting
-- **Oxlint** for linting
-- **tsgo** for type checks
+- **gofmt** for Go formatting
+- **go vet** and **go test** for cheap Go semantic checks
+- **Oxfmt** for frontend formatting
+- **Oxlint** for frontend linting
+- **tsgo** for frontend type checks
+- **Vitest** for lightweight frontend tests
 - **prek** for pre-commit hooks
 
-## hook policy
+## hook policy [done]
 
 Use pre-commit hooks for checks that are:
 
@@ -42,11 +45,12 @@ Default pre-commit hooks:
 
 - formatter on staged files
 - linter on staged files
-- lightweight tests only when they can be targeted cheaply
+- cheap semantic checks on staged-language changes (`go vet`, `go test`, `tsgo`, `vitest`)
+- merge-conflict marker check
 
 Do **not** put slow or flaky work in pre-commit.
 
-## ci policy
+## ci policy [done]
 
 CI runs the broader gates:
 
@@ -57,7 +61,7 @@ CI runs the broader gates:
 
 Vulnerability scanning belongs in CI first, not the commit hook. It matters, but it must not make the inner loop miserable.
 
-## logging policy
+## logging policy [done]
 
 Structured logging starts in the engineering baseline.
 
@@ -68,9 +72,16 @@ Requirements:
 - explicit error context, never silent failure
 - harness summaries emitted as JSON
 
+Bootstrap conventions:
+
+- backend services log to stderr with stdlib `slog` JSON handlers
+- every backend log line includes `component` and `log_kind`
+- CLI command results stay on stdout; diagnostics stay on stderr
+- future harness runs emit summary JSON under `.vgpr/local/e2e/` and use the same ID fields in logs
+
 If a flow matters, it needs logs we can grep and machine-parse.
 
-## engineering baseline
+## engineering baseline [done]
 
 **Goal:** create the minimum quality system that keeps the repo fast and trustworthy.
 
@@ -91,7 +102,7 @@ If a flow matters, it needs logs we can grep and machine-parse.
 
 - a contributor can clone the repo, install dependencies, and discover the default checks quickly
 - the repo already has the expected top-level structure for backend, frontend, CLI, harness, deploy, and scripts work
-- staged frontend files are auto-formatted and linted before commit
+- staged Go and frontend changes are formatted and cheap semantic checks run before commit
 - CI blocks merges on broken formatting, lint, tests, or critical dependency issues
 - new code has an obvious place to put machine-readable logs
 
@@ -101,7 +112,7 @@ If a flow matters, it needs logs we can grep and machine-parse.
 - heavyweight pre-push or pre-commit pipelines
 - enterprise compliance tooling
 
-## default command shape
+## default command shape [done]
 
 Keep the public interface small. Prefer commands like:
 
