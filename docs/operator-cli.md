@@ -54,24 +54,27 @@ vgpr destroy --confirm-name prod
 
 ## usage [done]
 
-```text
-vgpr [global flags] <command> [args]
+Root help is generated from Cobra command metadata. In the bootstrap slice it currently looks like this:
 
-Commands:
-  setup <local|mock|do>   Create or bootstrap a deployment
-  open                    Open the current deployment in the browser
-  status                  Show a compact deployment summary
-  doctor                  Run readiness and health checks
-  update                  Apply an app update to the current deployment
-  logs                    Show deployment logs
-  backup create           Create a backup
-  backup list             List known backups
-  restore <backup-id>     Restore a backup
-  destroy                 Tear down a deployment
-  help <command>          Show command help
+```text
+Usage:
+  vgpr [flags]
+  vgpr [command]
+
+Available Commands:
+  setup       Create or bootstrap a deployment
+  open        Open the current deployment in the browser
+  status      Show a compact deployment summary
+  doctor      Run readiness and health checks
+  update      Apply an app update to the current deployment
+  logs        Show deployment logs
+  backup      Manage deployment backups
+  restore     Restore a backup
+  destroy     Tear down a deployment
+  help        Help about any command
 ```
 
-Bootstrap slice note: the top-level command tree, `--help`, `help <command>`, `--version`, and global flag parsing are wired. Subcommands still return explicit stub errors until the local and remote deployment flows land.
+Bootstrap slice note: the top-level command tree, `--help`, `help <command>`, and the global `--version` flag are handled by Cobra instead of hand-maintained help text. Bootstrap-level non-secret defaults load through Koanf from `~/.config/vgpr/config.toml` plus the currently supported `VGPR_*` env vars. Help and version still work even if config is broken. Subcommands still return explicit stub errors until the local and remote deployment flows land.
 
 ## command status
 
@@ -108,6 +111,7 @@ Rules:
 
 - progress and diagnostics go to stderr
 - primary command output goes to stdout
+- `--json` and `--plain` are mutually exclusive
 - `--json` and `--plain` never mix decorative output into stdout
 - commands that would auto-open the browser do **not** auto-open when `--json`, `--plain`, or `--no-input` is set unless `--open` is passed explicitly
 
@@ -326,6 +330,8 @@ Rules:
 ## config, state, and secrets
 
 Precedence: flags > env > user config > built-in defaults.
+
+Bootstrap slice reality: only the bootstrap-level non-secret defaults path is wired so far. Deployment state files, Keychain storage, and the rest of this section stay as the target contract for later slices.
 
 ### user config
 

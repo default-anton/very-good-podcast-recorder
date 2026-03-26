@@ -27,6 +27,7 @@ This is the first slice from `docs/feedback-loop.md`.
   - `cmd/sessionrunner/`
   - `cmd/sessiond/`
   - `cmd/vgpr/`
+- wire the bootstrap `vgpr` command tree with Cobra and non-secret CLI config loading with Koanf
 - initialize `web/control/` and `web/session/` with TypeScript, React, Vite, and `tsgo`
 - add stable repo commands for `format`, `lint`, `typecheck`, `test`, and `check`
 - configure `oxfmt`, `oxlint`, `tsgo`, and `prek`

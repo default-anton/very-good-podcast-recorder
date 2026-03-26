@@ -118,6 +118,7 @@ The repo now contains these runnable skeleton entrypoints:
 - `mise exec -- pnpm exec vite --config web/session/vite.config.ts`
 
 Backend services emit structured JSON logs to stderr. The CLI keeps primary output on stdout and diagnostics on stderr.
+Its bootstrap command tree and generated help surface now run through Cobra, and bootstrap-level non-secret defaults load through Koanf from `~/.config/vgpr/config.toml` plus the supported `VGPR_*` env vars.
 
 ## Likely users
 
