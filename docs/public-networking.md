@@ -12,137 +12,123 @@ Related docs:
 
 ## recommendation
 
-Keep **public networking persistent** and make **session servers disposable backends**.
+Keep public networking **minimal and cheap** for alpha.
 
-Do **not** put per-session DNS record creation or per-session ACME/TLS issuance on the hot path.
+Ship one hosted topology only:
 
-For v1, ship:
+- stable control-plane links on a Cloudflare-managed domain
+- Cloudflare DNS as the only supported DNS provider
+- disposable DigitalOcean session servers
+- **no persistent edge box**
+- **no persistent TURN VM**
+- each disposable session server terminates its own TLS and runs its own TURN service
 
-- stable control-plane links on one persistent domain
-- a persistent public edge that owns DNS/TLS and routes session traffic
-- a private session-runner that owns provider and edge mutation credentials
-- a persistent TURN deployment with explicit knobs for co-hosted vs dedicated placement
-- temporary session servers that boot fast and never own public certificate lifecycle
+Do **not** turn networking into a product matrix yet.
 
 ## topology
 
-Default v1 layout:
+Default alpha layout:
 
-- `app.<domain>`: persistent control plane UI + API
-- `*.sessions.<domain>`: persistent edge-routed session hostnames
-- `turn.<domain>`: persistent TURN hostname
-- one temporary session server per recording session
+- `app.<domain>`: persistent control plane UI + API on Cloudflare
+- `<session-id>.sessions.<domain>`: session hostname published in Cloudflare DNS directly to the current disposable backend
+- one disposable DigitalOcean session server per recording session
+- TURN exposed by that same disposable session server for the lifetime of the session
 
-The control plane shares only stable control-plane join links with humans, for example:
+The control plane shares only stable human join links, for example:
 
 - `https://app.<domain>/j/<session-id>?role=guest&k=...`
 
 The browser join flow fetches session bootstrap info from the control plane and then connects to the current session backend.
 
-That keeps user-facing links stable even if pre-recording provisioning fails and the control plane has to destroy and recreate the temporary backend.
+That bootstrap payload may include:
+
+- session hostname / base URL
+- LiveKit connection info
+- session-scoped TURN host, ports, transport options, and credentials
+
+That keeps human join links stable even if pre-recording provisioning fails and the control plane has to destroy and recreate the disposable backend.
 
 ## what stays persistent
 
 Persistent services:
 
-- control plane
-- private session-runner
-- edge / TLS router
-- DNS zone
-- TURN deployment
+- Cloudflare-hosted control plane
+- Cloudflare DNS zone
 
 Disposable per-session runtime:
 
+- Caddy
 - LiveKit
 - `sessiond`
+- TURN
 - local artifact disk
 
 ## integrations
 
-Start with:
+Start with exactly this:
 
+- **control plane**: Cloudflare Workers + D1
 - **compute**: DigitalOcean
-- **DNS**: Cloudflare DNS or DigitalOcean DNS
-- **edge / TLS**: Caddy
-- **TURN**: coturn
-- **session server base image**: stock provider Ubuntu LTS image
+- **DNS**: Cloudflare DNS
+- **session-side TLS**: Caddy on the disposable session server
+- **TURN**: coturn on the disposable session server
+- **session server base image**: stock DigitalOcean Ubuntu LTS image
 
-Use the DNS provider API for record management, not as the primary media proxy.
+Do **not** support DigitalOcean DNS, mock providers, or multiple TURN modes in alpha.
 
-Operator workflow and CLI contract live in `docs/operator-cli.md`.
-Bootstrap details for the temporary server live in `docs/session-server-bootstrap.md`.
-Version pins for Caddy and coturn live in `docs/version-pins.md`.
+## DNS publication model
 
-## routing model
+There is no persistent reverse-proxy layer in front of session servers.
 
-The edge owns wildcard TLS for `*.sessions.<domain>` and routes by hostname to the currently assigned temporary backend.
+Instead:
 
-The private session-runner publishes or updates the route only after the temporary backend passes the readiness contract from `docs/session-server-bootstrap.md`.
+- the control plane allocates a session hostname such as `<session-id>.sessions.<domain>`
+- the control plane creates or updates a Cloudflare DNS record pointing that hostname to the disposable backend IP
+- the disposable session server serves HTTPS on that hostname
+- when the session ends, the control plane removes the DNS record during teardown
 
-Minimum routing rule:
+Rules:
 
-- no public session route before readiness passes
-- route swap is the last step before `session_servers.state = 'ready'`
-- route removal happens before intentional teardown completes
+- the human-shared join link stays on `app.<domain>`
+- the direct session hostname is a machine-facing bootstrap target, not the main human URL
+- if provisioning fails before recording starts, the control plane may recreate the backend and repoint the DNS record while keeping the same human join link
 
-## TURN deployment modes
+## TURN stance
 
-Support both modes in v1.
+Do **not** ship alpha with a broad TURN feature matrix.
 
-### 1. co-hosted TURN
+Do this instead:
 
-Run coturn on the same VPS as the control plane/edge.
+- keep TURN support available from day one
+- run TURN on the disposable session server itself
+- use session-scoped credentials
+- expose TURN only for the lifetime of that session server
+- do **not** offer dedicated TURN placement, resizing UX, or migration modes yet
 
-Use this for:
-
-- tiny installs
-- demos
-- low concurrency
-- operators who want the cheapest possible footprint
-
-### 2. dedicated TURN
-
-Run coturn on its own VPS.
-
-Use this as the default recommendation once:
-
-- outside users matter
-- multiple sessions may overlap
-- relay-heavy networks are expected
-- reliability matters more than absolute lowest cost
-
-## TURN knobs
-
-The product should let operators:
-
-- choose co-hosted or dedicated TURN
-- change TURN VM size
-- destroy and recreate the TURN deployment
-- move TURN from co-hosted to dedicated and back
-- rotate TURN credentials without changing join-link shape
-
-Treat TURN as replaceable infrastructure, not a hand-managed pet box.
+The cut is **persistent networking infrastructure as a product feature**, not TURN support itself.
 
 ## provisioning flow
 
 ### session provisioning
 
-1. host creates session; control-plane join links are immediately shareable
+1. host creates a session; control-plane join links are immediately shareable
 2. control plane writes provisioning intent for that session
-3. private session-runner selects a region and boots a temporary session server
-4. temporary-server bootstrap runs per `docs/session-server-bootstrap.md`
-5. private session-runner waits for readiness
-6. private session-runner publishes the edge route for the session hostname
-7. `session_servers.state` becomes `ready`
-8. browsers join through the stable control-plane flow
+3. control-plane provisioning logic selects a DigitalOcean region and boots a disposable session server
+4. control plane allocates the session hostname and publishes the Cloudflare DNS record to that backend IP
+5. temporary-server bootstrap runs per `docs/session-server-bootstrap.md`
+6. the disposable server obtains or loads its session-side TLS config and reaches readiness
+7. the control plane stores the session-scoped TURN details for browser bootstrap
+8. `session_servers.state` becomes `ready`
+9. browsers join through the stable control-plane flow
 
 ### retry before recording start
 
 If provisioning fails before any `recording_epoch_id` exists:
 
-- destroy the failed temporary backend
+- destroy the failed disposable backend
 - boot a fresh one
-- republish the route
+- repoint the DNS record to the new backend
+- replace the TURN details with the new backend's details
 - keep the same human join link
 
 This matches `docs/session-lifecycle.md`.
@@ -151,24 +137,37 @@ This matches `docs/session-lifecycle.md`.
 
 Do this:
 
-- terminate public TLS at the persistent edge
-- keep wildcard certs off temporary session servers
-- keep public DNS static except for controlled edge routing changes
+- terminate public TLS at Cloudflare for the control plane
+- terminate session-side TLS on the disposable session server itself
+- use per-session or per-hostname certificates for the disposable backend
+- keep wildcard private keys off disposable session servers
 
 Do **not** do this:
 
-- issue TLS certs on each temporary session server at runtime
-- depend on fresh public DNS propagation before a session becomes joinable
-- copy wildcard private keys onto every temporary backend
-- expose raw temporary-backend URLs as the main user-facing join links
+- pay for a separate always-on edge box in alpha
+- pay for a separate always-on TURN VM in alpha
+- support multiple DNS providers in alpha
+- expose raw temporary-backend URLs as the main human-facing join links
+
+## tradeoff
+
+Removing the persistent edge box saves money and simplifies operations, but it means alpha accepts more work on the session-create hot path:
+
+- per-session DNS publication
+- session-side TLS setup on the disposable backend
+
+That is a good trade for alpha.
 
 ## v1 targets
 
-Set these targets for the first real deployment slice:
+Set these targets for the first real hosted slice:
 
-- cold provision to joinable: p95 under 45s
-- route publish/update: under 1s once the backend is healthy
+- cold provision to joinable: p95 under 60s
 - pre-recording reprovision keeps the same human join link
-- one scripted remote smoke path proves create → provision → join → record → upload → stop
+- one scripted hosted smoke path proves create → provision → join → record → upload → stop
 
-If cold boot is too slow, the next optimization is warm standby capacity in one region. Do not add custom images before measuring that the stock-image bootstrap path is actually the bottleneck.
+If cold boot is too slow, optimize in this order:
+
+1. tighten bundle size and bootstrap work
+2. add warm standby capacity in one region
+3. only then revisit the network shape

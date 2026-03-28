@@ -13,7 +13,7 @@ Related docs:
 
 ## recommendation
 
-Ship one boring, truthful UX.
+Ship one boring, truthful, **responsive** UX.
 
 The v1 promise is:
 
@@ -22,6 +22,7 @@ The v1 promise is:
 - show one obvious recording state
 - keep live call, local capture, and upload health separate
 - make failures explicit before they become support mysteries
+- keep the UI usable across common viewport sizes
 
 This doc owns user-visible behavior, not visual design.
 
@@ -41,6 +42,20 @@ Users must be able to learn this product in one pass:
 
 The UI must not collapse those 3 paths into one vague health indicator.
 
+## responsive requirement
+
+Responsive UI is **required** for v1.
+
+Rules:
+
+- all required screens must work at common laptop, desktop, and tablet widths
+- narrow layouts must stay fully usable without horizontal scrolling for core actions
+- critical recording state and error text must remain visible in narrow layouts
+- do **not** hide recording start/stop, seat status, or failure language behind hover-only interactions
+- layout reflow is required; feature parity on every phone browser is **not** promised yet
+
+Product support remains Chromium-first for live recording flows. Responsive layout does **not** imply full mobile capture support in alpha.
+
 ## required surfaces
 
 ### 1. host session setup
@@ -48,13 +63,19 @@ The UI must not collapse those 3 paths into one vague health indicator.
 The host setup flow must let the operator:
 
 - create or edit the session title
-- create the roster and assign `host` or `guest` seats
+- create the seat roster and assign `host` or `guest` seats
 - set unambiguous display names before the session starts
 - copy the host link
 - copy the guest link
 - see whether the session is `draft`, `ready`, `active`, or `ended`
 
 Once the session is `active`, roster edits, display-name edits, and join-link rotation for that hosted run must be visibly unavailable.
+
+Responsive rules:
+
+- the primary actions stay above the fold on common laptop widths
+- seat rows may stack on narrow layouts, but seat identity and role must stay obvious
+- copy-link actions must remain tap/click friendly
 
 ### 2. join flow
 
@@ -73,6 +94,12 @@ The seat picker must expose only these states from `docs/seat-claim-protocol.md`
 - `you`
 - `in_use`
 - `rejoin_available`
+
+Responsive rules:
+
+- the seat picker must work cleanly on narrow layouts
+- long display names must truncate safely without losing seat identity
+- the takeover action must stay explicit and hard to trigger accidentally
 
 ### 3. session room
 
@@ -99,6 +126,13 @@ Required host-only controls:
 
 If multi-camera ships in v1, expose it as a plain add/remove camera action. Do not turn v1 into a routing console.
 
+Responsive rules:
+
+- the session status bar stays persistent in all supported layouts
+- the host roster/status panel may collapse below the grid on narrow screens, but its state signals must remain available without mode-switch confusion
+- participant controls must stay reachable without covering the status bar
+- do not rely on drag-and-drop or hover-only affordances for required actions
+
 ### 4. post-recording summary
 
 After recording stops, the host must be able to see:
@@ -109,6 +143,12 @@ After recording stops, the host must be able to see:
 - plain-language failure reasons when the result is not healthy
 
 V1 does not require in-product media review, editing, or publishing.
+
+Responsive rules:
+
+- final status and artifact readiness must appear before secondary metadata
+- download actions must remain obvious on narrow layouts
+- error summaries must wrap cleanly and stay text-first
 
 ## required status model
 
@@ -213,3 +253,4 @@ Do not make this doc responsible for:
 - post-production workflow
 - freeform join-time names
 - public first-user-wins account setup
+- full mobile recording support

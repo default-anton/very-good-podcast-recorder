@@ -85,7 +85,7 @@ States:
 
 - roster is internally valid and names are unambiguous
 - join links exist and may be shared
-- the control plane may request provisioning of the temporary server through the private session-runner
+- the control plane may request provisioning of the temporary server through its hosted provisioning logic
 - roster may still change
 - join keys may still rotate
 - there is no recording run yet
@@ -161,7 +161,7 @@ States:
 
 Use `session_servers.state = 'failed'` for infrastructure/runtime failure, for example:
 
-- the session-runner could not complete provisioning
+- the control plane could not complete provisioning
 - the session server process is crash-looping
 - the VM is unreachable
 - local session state is unreadable or irrecoverably corrupted

@@ -40,7 +40,7 @@ Use Playwright to launch the browsers with deterministic fake media devices, a d
 The harness should perform this flow:
 
 1. start the local stack
-2. create a session, participant records, and join URLs through the control plane
+2. create a session, seat records, and join URLs through the control plane
 3. launch host and guest browsers
 4. verify all participants join the same LiveKit room with the expected seat identities
 5. host starts recording
@@ -58,7 +58,7 @@ Every run should produce text-first artifacts that an agent can inspect without 
 - harness summary JSON with pass/fail plus per-participant status
 - structured control-plane, app, session-server, and LiveKit-related logs with session and participant IDs
 - explicit mapping of seat ID → LiveKit participant identity in the summary or logs
-- `session.json` showing `recording_epoch_id`, expected participants, expected baseline sources per seat, started source instances per seat, per-track `source_instance_id` / optional `capture_group_id`, capture offset ranges, chunk counts, final `recording_state`, and final `recording_health`
+- `session.json` showing `recording_epoch_id`, expected seats, expected baseline sources per seat, started source instances per seat, per-track `source_instance_id` / optional `capture_group_id`, capture offset ranges, chunk counts, final `recording_state`, and final `recording_health`
 - `track.json` per track segment showing final chunk order, `artifact_status`, and explicit salvage metadata; resume/retry detail may live here or in structured logs
 - artifact listing for the final downloadable session folder
 

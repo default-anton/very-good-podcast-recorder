@@ -21,13 +21,13 @@ Related docs:
 
 ## recommendation
 
-Ship v1 as 3 runtime components plus 2 persistent infrastructure services:
+Ship v1 as a **hosted alpha**, not as a self-hosting product.
 
-1. **persistent host control plane**
-2. **private session-runner**
-3. **single-tenant temporary session server**
-4. **persistent public edge**
-5. **persistent TURN deployment**
+Runtime shape:
+
+1. **persistent control plane on Cloudflare**
+2. **single-tenant disposable DigitalOcean session server per recording session**
+3. **Cloudflare DNS publication for direct session hostnames**
 
 Keep the product split into 3 independent runtime paths:
 
@@ -35,7 +35,7 @@ Keep the product split into 3 independent runtime paths:
 - **local capture path**: browser records per-seat sources locally in rolling chunks
 - **upload path**: browser uploads those chunks in the background with retry + resume
 
-That split is the core v1 reliability decision. A bad live connection must not silently ruin the local recording, and a stalled upload must not kill the call.
+That split is still the core reliability decision. A bad live connection must not silently ruin the local recording, and a stalled upload must not kill the call.
 
 ## component boundaries
 
@@ -45,29 +45,20 @@ Owns:
 
 - host-facing web UI and API
 - persistent session metadata
-- reusable participants and per-session seats
-- provisioning intent/state
-- stable human join links
+- per-session seats and stable join links
+- provisioning intent and reconciliation
+- responsive host/guest UI delivery
+- the browser bootstrap that tells clients where the current session runtime lives
 
 Does **not** own:
 
-- cloud or DNS mutation credentials
 - media transport
 - chunk ingest
-- temporary-session bootstrap logic
+- long-lived media state for a session server
 
-### session-runner
+For alpha, keep provisioning logic inside the hosted control-plane deployment. Do **not** split a separately operated session-runner product surface yet.
 
-Owns:
-
-- provider credentials
-- edge-route publication
-- temporary session-server create/destroy
-- readiness polling and reconciliation
-
-It is the security boundary between the public control plane and infrastructure mutation.
-
-### temporary session server
+### disposable session server
 
 Owns:
 
@@ -77,36 +68,59 @@ Owns:
 - chunk ingest and local manifests
 - session-local durability state
 
-It is disposable. It should not own public DNS, public TLS, or long-lived control-plane state.
+It is disposable. It should not own long-lived control-plane state.
 
-### persistent edge and TURN
+### public networking and TURN
 
 Own:
 
-- stable public hostnames
-- public TLS termination
-- routing to the current temporary backend
+- stable control-plane hostnames
+- session hostname publication in Cloudflare DNS
+- session-side TLS termination
 - NAT traversal support
 
-These stay persistent so session creation does not depend on fresh DNS or ACME work.
+For alpha, keep this minimal:
+
+- no persistent reverse-proxy or edge box
+- each disposable session server terminates its own TLS
+- TURN runs on the disposable session server, not on a separate persistent VM
+- do **not** add dedicated TURN deployment choices yet
 
 ## stack
 
 - **frontend**: TypeScript, React, Vite, `tsgo` for type checks
+- **responsive UI requirement**: all host and guest screens must reflow cleanly across common viewport sizes; responsive does **not** imply broad mobile recording support yet
+- **persistent control plane**: Cloudflare Workers
+- **control-plane state**: Cloudflare D1
 - **browser live media client**: LiveKit browser/JS SDK
-- **control plane API**: Go, `net/http` + stdlib `ServeMux`
-- **session-runner**: private Go service
-- **temporary session API / upload service**: Go, `net/http` + stdlib `ServeMux`
+- **disposable session API / upload service**: Go, `net/http` + stdlib `ServeMux`
 - **live media server**: self-hosted LiveKit, single-node first
-- **control-plane state**: SQLite
 - **session-local state**: SQLite + local disk
-- **persistent edge / TLS**: Caddy
-- **TURN**: coturn
-- **operator surface**: `vgpr` CLI
-- **local packaging**: Docker Compose
+- **public DNS**: Cloudflare DNS
+- **session-side TLS**: Caddy on the disposable session server
+- **TURN**: coturn on the disposable session server
 - **temporary session-server packaging**: stock Ubuntu LTS VM + cloud-init + systemd + versioned release bundle
+- **operator surface**: browser UI for normal operation; internal maintainer scripts for deployment and recovery
+- **local dev harness**: Docker Compose or equivalent repo-local runtime, not a user-facing deployment product
 - **tests**: Go test, Vitest, Playwright
 - **observability**: structured JSON logs and explicit manifests
+
+## deployment shape
+
+Lock alpha to one boring hosted topology:
+
+- **Cloudflare**: control plane app/API + D1 + DNS
+- **DigitalOcean**: disposable session servers
+- **no persistent edge box**
+
+Do **not** build alpha around:
+
+- self-hosting
+- a user-facing local install flow
+- provider abstraction
+- multiple DNS providers
+- multiple compute providers
+- a separate dedicated TURN product mode
 
 ## LiveKit integration boundary
 
@@ -139,7 +153,8 @@ Use the other docs for the detailed contracts:
 
 - networking and hostnames → `docs/public-networking.md`
 - temporary-server bootstrap and readiness → `docs/session-server-bootstrap.md`
-- operator workflow and CLI UX → `docs/operator-cli.md`
+- alpha deployment boundary and deferred CLI → `docs/operator-cli.md`
+- release bundles and hosted updates → `docs/releases.md`
 - join links, seats, and LiveKit identity mapping → `docs/identity.md`
 - claim/reclaim/takeover wire contract → `docs/seat-claim-protocol.md`
 - lifecycle states and failure escalation → `docs/session-lifecycle.md`
@@ -147,25 +162,31 @@ Use the other docs for the detailed contracts:
 - capture/source model → `docs/capture-profile.md`
 - recording state and clock sync → `docs/recording-control-protocol.md`
 - track/chunk upload protocol → `docs/recording-upload-protocol.md`
-- local boot/runtime contract → `docs/local-stack.md`
+- local harness/runtime contract → `docs/local-stack.md`
 - version policy and version pins → `docs/version-pins.md`
 - local harness and scenario coverage → `docs/testing.md`
 
 ## why this shape
 
+- **cut ops scope first**: a hosted alpha gets to value faster than a self-hosting product.
 - **don’t build an SFU first**: LiveKit is the boring choice and buys us room semantics, reconnects, and TURN support.
-- **persistent control plane**: the right home for host UX, stable seat identity, and provisioning intent.
-- **private session-runner**: the right home for cloud, DNS, and edge mutation credentials.
-- **persistent edge**: keeps DNS/TLS off the session-create hot path.
-- **SQLite + local disk**: enough for v1 and easy to inspect.
-- **Go**: simple deployment and good fit for the control plane, reconciler, and chunk ingest.
-- **systemd on stock VMs**: simpler than Docker on short-lived boxes.
+- **Cloudflare control plane**: cheap persistent UI/API with a simple deployment story.
+- **disposable session servers**: keeps session cost tied to actual recording time.
+- **single hosted topology**: fewer branches, fewer docs, fewer bugs.
+- **direct session hostnames**: cheaper than running a persistent edge box for alpha.
+- **session-scoped TURN**: keep TURN support without paying for a separate always-on VM.
+- **responsive UI**: required from the start because cramped layouts create operational mistakes.
 
-## non-goals for v1
+## non-goals for v1 alpha
 
+- self-hosting as a supported product feature
+- public operator CLI
+- local deployment for operators
+- multiple cloud or DNS providers
+- a persistent edge box or persistent TURN deployment
+- dedicated TURN sizing/placement modes
 - multi-region orchestration
 - cloud storage integrations
 - server-side compositing or livestreaming
 - a custom SFU or media backend
-
-If we hit real limits, the first split is **separate upload ingest from `sessiond`**, not a full re-architecture.
+- broad browser/platform support before the Chromium-first baseline is solid

@@ -49,13 +49,14 @@ Bootstrap implementation notes:
 
 The harness-only pivot currently ships no application runtime. The table below is the target stack to restore when implementation resumes.
 
-| Surface           | Version  | Notes                                   |
-| ----------------- | -------- | --------------------------------------- |
-| React             | `19.2.4` |                                         |
-| Vite              | `8.0.1`  |                                         |
-| Vitest            | `4.1.0`  |                                         |
-| LiveKit Server    | `1.9.12` |                                         |
-| LiveKit JS client | `2.17.3` |                                         |
-| SQLite            | `3.51.3` |                                         |
-| Caddy             | `2.11.2` | persistent edge or local `edge` profile |
-| coturn            | `4.9.0`  | persistent TURN or local `edge` profile |
+| Surface                          | Version  | Notes                                                     |
+| -------------------------------- | -------- | --------------------------------------------------------- |
+| React                            | `19.2.4` |                                                           |
+| Vite                             | `8.0.1`  |                                                           |
+| Vitest                           | `4.1.0`  |                                                           |
+| Cloudflare Workers compatibility | `2026-03-20` | pin via Wrangler compatibility date for the control plane |
+| LiveKit Server                   | `1.9.12` |                                                           |
+| LiveKit JS client                | `2.17.3` |                                                           |
+| SQLite                           | `3.51.3` | control-plane local persistence substitute and sessiond   |
+| Caddy                            | `2.11.2` | disposable session-server TLS frontend or local `edge` profile |
+| coturn                           | `4.9.0`  | disposable session-server TURN runtime or local `edge` profile |

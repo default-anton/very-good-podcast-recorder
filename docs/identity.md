@@ -18,13 +18,12 @@ This is **identification**, not strong auth. Possession of a link is the credent
 
 The durable runtime identity is the **session seat**. Reconnects, uploads, manifests, and final downloads key off that seat id. Do not recycle it within a session.
 
-The control plane also keeps reusable participants. The session server does **not** use that global participant id as the runtime identity.
+Do **not** add a reusable participant directory to alpha. It is extra product surface without enough value.
 
 ## identity model
 
-The control plane keeps two layers:
+For alpha, the control plane keeps one layer only:
 
-- **participants**: reusable people records created once and reused across sessions
 - **session seats**: one seat in one session, with its own stable runtime id
 
 Per session:
@@ -35,7 +34,6 @@ Per session:
 Each session seat has:
 
 - `id`
-- `participant_id`
 - `role`: `host | guest`
 - `display_name`
 
@@ -74,7 +72,7 @@ Rules:
 
 - store only **hashed** join keys
 - treat the raw link as a bearer secret
-- let the host regenerate either link if it leaks
+- let the host regenerate either link if it leaks before the session becomes `active`
 - never log raw join keys
 
 ## permissions
@@ -123,7 +121,7 @@ Sync:
 - session seats: `id`, `role`, `display_name`
 - role permissions: `host` can control recording, `guest` cannot
 
-The session server does **not** need the global `participants` table. It only needs the session-local seat snapshot.
+The session server does **not** need a global participant directory. It only needs the session-local seat snapshot.
 
 ## schema ownership
 
@@ -133,6 +131,7 @@ The session server does **not** need the global `participants` table. It only ne
 
 ## non-goals for v1
 
+- reusable participant records across sessions
 - personal accounts
 - passwords, email, SMS, magic links
 - separate identity classes for `host` and `cohost`

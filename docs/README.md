@@ -21,10 +21,10 @@ The repo no longer keeps draft execution slices under `docs/issues/`.
 
 | Doc | Owns | Impl |
 | --- | --- | --- |
-| `docs/architecture.md` | top-level system shape, component boundaries, stack choices | |
-| `docs/ux-contract.md` | v1 host/guest UX surface, required screens, status model, failure language | |
+| `docs/architecture.md` | hosted-alpha system shape, component boundaries, stack choices | |
+| `docs/ux-contract.md` | v1 host/guest UX surface, responsive behavior, required screens, status model, failure language | |
 | `docs/repo-layout.md` | repo/package layout during the current harness-only pivot | |
-| `docs/local-stack.md` | local boot flow, profiles, env/config, port map, local logs/state/artifacts | |
+| `docs/local-stack.md` | internal dev harness and local runtime contract; not a user-facing deployment story | |
 | `docs/version-pins.md` | host toolchain and target third-party runtime component version pins | |
 | `docs/feedback-loop.md` | local quality loop, hooks, CI, logging baseline | |
 | `docs/testing.md` | end-to-end harness shape and required scenarios | |
@@ -33,10 +33,10 @@ The repo no longer keeps draft execution slices under `docs/issues/`.
 
 | Doc | Owns | Impl |
 | --- | --- | --- |
-| `docs/public-networking.md` | public hostnames, persistent edge, TURN placement, route publication | |
-| `docs/session-server-bootstrap.md` | temporary session-server bootstrap chain, bundle layout, readiness contract | |
-| `docs/operator-cli.md` | operator-facing CLI UX, commands, flags, output, safety rules | |
-| `docs/releases.md` | release versioning, published artifacts, update discovery, and persistent update contract | |
+| `docs/public-networking.md` | public hostnames, Cloudflare DNS, direct session hostnames, session-scoped TURN, DNS publication | |
+| `docs/session-server-bootstrap.md` | disposable session-server bootstrap chain, bundle layout, readiness contract | |
+| `docs/operator-cli.md` | deferred operator CLI boundary and current alpha deployment/ops expectations | |
+| `docs/releases.md` | release versioning, published artifacts, and manual hosted update contract for alpha | |
 
 ## session auth and state
 

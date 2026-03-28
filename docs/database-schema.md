@@ -23,14 +23,14 @@ Use this doc as the schema source of truth for v1. Keep identity and permissions
 Use `pressly/goose` with SQL migration files.
 Do **not** build a custom migration tool.
 
-For v1:
+For v1 alpha:
 
 - keep separate migration directories for the persistent control plane and the temporary session server, for example `db/migrations/controlplane` and `db/migrations/sessiond`
 - use numbered SQL files such as `00001_init.sql`
 - each reversible migration should include both `-- +goose Up` and `-- +goose Down`
-- embed those migrations into the Go binaries so `setup` and `update` do not depend on an extra operator-installed tool
-- production bootstrap and `vgpr update` run `up` only; down migrations are for disposable local and mock databases during development iteration
-- run control-plane migrations during bootstrap and `vgpr update`
+- embed those migrations into the Go binaries so hosted deploy/update work does not depend on an extra operator-installed tool
+- hosted deploys and updates run `up` only; down migrations are for disposable local development databases during iteration
+- run control-plane migrations during hosted deploy/update work
 - run session-server migrations only during fresh server bootstrap before readiness, per `docs/session-server-bootstrap.md`
 - do **not** in-place migrate an already-running temporary session server in v1
 - if a control-plane schema migration committed and the release must be backed out, restore from backup; do **not** rely on production `down` migrations
@@ -53,49 +53,33 @@ create table sessions (
   updated_at text not null              -- Detects recent edits/stale views.
 );
 
--- participants: reusable people records created once and reused across sessions.
-create table participants (
-  id text primary key,                  -- Stable control-plane participant id. Reused across many sessions.
-  display_name text not null,           -- Default name copied into a session participant row.
-  created_at text not null,             -- Audit trail and deterministic ordering fallback.
-  updated_at text not null              -- Tracks edits to the reusable participant record.
-);
-
--- idx_participants_display_name: supports control-plane search/pickers by name.
-create index idx_participants_display_name on participants(display_name);
-
--- session_participants: one seat in one session. This row is the durable runtime identity.
-create table session_participants (
+-- session_seats: one seat in one session. This row is the durable runtime identity.
+create table session_seats (
   id text primary key,                  -- Stable runtime seat id for this session only. Used by reconnects, uploads, and manifests.
   session_id text not null references sessions(id) on delete cascade,
                                         -- Owning session. Cascade removes the roster with the session.
-  participant_id text not null references participants(id),
-                                        -- Reusable control-plane participant behind this session seat.
   role text not null check (role in ('host', 'guest')),
                                         -- host=may control recording; guest=may join but not control recording.
-  display_name text not null,           -- Session-local name snapshot so old sessions stay stable after later renames.
-  created_at text not null,             -- When this seat was added to the session.
-  updated_at text not null              -- Tracks seat-local edits, e.g. a session-specific name tweak.
+  display_name text not null,
+                                        -- Session-local display name chosen by the host before the session starts.
+  created_at text not null,
+  updated_at text not null
 );
 
--- idx_session_participants_session_role_name: fast join-picker reads for one session and one role.
-create index idx_session_participants_session_role_name
-  on session_participants(session_id, role, display_name);
+-- idx_session_seats_session_role_name: fast join-picker reads for one session and one role.
+create index idx_session_seats_session_role_name
+  on session_seats(session_id, role, display_name);
 
--- idx_session_participants_session_participant_unique: prevents adding the same reusable participant twice to one session.
-create unique index idx_session_participants_session_participant_unique
-  on session_participants(session_id, participant_id);
-
--- idx_session_participants_session_name_unique: forces unambiguous display names within one session.
-create unique index idx_session_participants_session_name_unique
-  on session_participants(session_id, display_name);
+-- idx_session_seats_session_name_unique: forces unambiguous display names within one session.
+create unique index idx_session_seats_session_name_unique
+  on session_seats(session_id, display_name);
 
 -- session_servers: current temporary server assigned to a session.
 create table session_servers (
   id text primary key,                  -- Control-plane id for the provisioned server instance.
   session_id text not null unique references sessions(id) on delete cascade,
                                         -- One active temporary server per session in v1.
-  base_url text not null,               -- Public session-runtime base URL/hostname served behind the persistent edge. Used by browser bootstrap/session traffic and runtime operations, not as the human-shared control-plane join link.
+  base_url text not null,               -- Public session-runtime base URL/hostname served directly by the disposable backend. Used by browser bootstrap/session traffic and runtime operations, not as the human-shared control-plane join link.
   region text,                          -- Placement/debug metadata only.
   state text not null check (state in ('creating', 'ready', 'stopping', 'stopped', 'failed')),
                                         -- creating=provisioning/bootstrap; ready=joinable runtime; stopping=intentional teardown requested; stopped=intentional teardown complete; failed=runtime not trustworthy.
@@ -135,7 +119,7 @@ create table session_snapshot (
 
 -- participant_seats: local roster snapshot so join/rejoin does not depend on the control plane.
 create table participant_seats (
-  id text primary key,                  -- Same id as session_participants.id from the control plane. Main runtime identity key.
+  id text primary key,                  -- Same id as session_seats.id from the control plane. Main runtime identity key.
   session_id text not null references session_snapshot(session_id) on delete cascade,
                                         -- Redundant but useful for sanity checks and local queries.
   role text not null check (role in ('host', 'guest')),
