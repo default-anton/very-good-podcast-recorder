@@ -21,6 +21,7 @@ The repo no longer keeps draft execution slices under `docs/issues/`.
 
 | Doc | Owns | Impl |
 | --- | --- | --- |
+| `docs/alpha-scope.md` | exact hosted-alpha cut line, deferred surfaces, end-to-end flow, and 3 implementation milestones | |
 | `docs/architecture.md` | hosted-alpha system shape, component boundaries, stack choices | |
 | `docs/ux-contract.md` | v1 host/guest UX surface, responsive behavior, required screens, status model, failure language | |
 | `docs/repo-layout.md` | repo/package layout during the current harness-only pivot | |

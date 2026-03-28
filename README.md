@@ -12,6 +12,8 @@ All application implementation code was removed during the pivot. What remains i
 
 Treat the product docs below as the target contract to restore, not as shipped behavior.
 
+If you want the shortest path to the current intended product slice, start with `docs/alpha-scope.md` and then follow the linked owning specs.
+
 ## How it works
 
 The host uses a persistent control plane hosted on Cloudflare. That control plane owns the session roster, stable human join links, and the host UI.

@@ -3,6 +3,7 @@
 Related docs:
 
 - `docs/README.md`
+- `docs/alpha-scope.md`
 - `docs/repo-layout.md`
 - `docs/local-stack.md`
 - `docs/version-pins.md`
@@ -148,6 +149,8 @@ Do **not** build the product on top of an off-the-shelf LiveKit UI.
 ## source-of-truth map
 
 This doc owns only the top-level shape.
+
+For the exact shipped cut line, deferred surfaces, end-to-end alpha flow, and the 3 implementation milestones, start with `docs/alpha-scope.md`.
 
 Use the other docs for the detailed contracts:
 
