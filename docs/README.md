@@ -15,7 +15,8 @@ Rules:
 | --- | --- |
 | `docs/implementation-status.md` | temporary convention for marking which spec docs and sections are implemented |
 
-The repo no longer keeps draft execution slices under `docs/issues/`.
+The repo normally keeps source-of-truth specs outside `docs/issues/`.
+User-requested execution plans or issue drafts may live there temporarily, but they do **not** replace the owning specs.
 
 ## product shape
 
@@ -24,11 +25,11 @@ The repo no longer keeps draft execution slices under `docs/issues/`.
 | `docs/alpha-scope.md` | exact hosted-alpha cut line, deferred surfaces, end-to-end flow, and 3 implementation milestones | |
 | `docs/architecture.md` | hosted-alpha system shape, component boundaries, stack choices | |
 | `docs/ux-contract.md` | v1 host/guest UX surface, responsive behavior, required screens, status model, failure language | |
-| `docs/repo-layout.md` | repo/package layout during the current harness-only pivot | |
+| `docs/repo-layout.md` | current repo shape and where new alpha implementation should land | |
 | `docs/local-stack.md` | internal dev harness and local runtime contract; not a user-facing deployment story | |
 | `docs/version-pins.md` | host toolchain and target third-party runtime component version pins | |
 | `docs/feedback-loop.md` | local quality loop, hooks, CI, logging baseline | |
-| `docs/testing.md` | end-to-end harness shape and required scenarios | |
+| `docs/testing.md` | alpha harness shape and must-pass scenarios | |
 
 ## deployment and ops
 
@@ -36,8 +37,8 @@ The repo no longer keeps draft execution slices under `docs/issues/`.
 | --- | --- | --- |
 | `docs/public-networking.md` | public hostnames, Cloudflare DNS, direct session hostnames, session-scoped TURN, DNS publication | |
 | `docs/session-server-bootstrap.md` | disposable session-server bootstrap chain, bundle layout, readiness contract | |
-| `docs/operator-cli.md` | deferred operator CLI boundary and current alpha deployment/ops expectations | |
-| `docs/releases.md` | release versioning, published artifacts, and manual hosted update contract for alpha | |
+| `docs/operator-cli.md` | deferred operator CLI boundary for alpha | |
+| `docs/releases.md` | alpha release/version rules and manual hosted update notes | |
 
 ## session auth and state
 

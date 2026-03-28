@@ -106,6 +106,21 @@ For alpha, keep this minimal:
 - **tests**: Go test, Vitest, Playwright
 - **observability**: structured JSON logs and explicit manifests
 
+## repo mapping
+
+Map the implementation to the repo like this:
+
+- `web/control/` = Cloudflare control plane root for host UI + API
+- `web/session/` = browser join/session app
+- `cmd/sessiond/` = disposable session-server entrypoint
+- `internal/sessiond/` = session-server internals
+- `db/migrations/controlplane/` = control-plane schema migrations
+- `db/migrations/sessiond/` = session-server schema migrations
+- `deploy/session-server/` = cloud-init, systemd, Caddy, and bootstrap assets
+- `e2e/` = reality-like harness and deterministic fixtures
+
+That is enough structure for alpha and still boring later. Do **not** split this into multiple repos or a fake provider/plugin tree.
+
 ## deployment shape
 
 Lock alpha to one boring hosted topology:
