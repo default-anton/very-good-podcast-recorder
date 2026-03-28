@@ -52,9 +52,11 @@ vgpr restore backup_2026-03-20T18-42-11Z
 vgpr destroy --confirm-name prod
 ```
 
-## usage [done]
+## usage
 
-Root help is generated from Cobra command metadata. In the bootstrap slice it currently looks like this:
+This repo currently ships no CLI implementation. Treat the block below as the help surface to restore when `vgpr` returns.
+
+Target root help:
 
 ```text
 Usage:
@@ -74,7 +76,7 @@ Available Commands:
   help        Help about any command
 ```
 
-Bootstrap slice note: the top-level command tree, `--help`, `help <command>`, and the global `--version` flag are handled by Cobra instead of hand-maintained help text. Bootstrap-level non-secret defaults load through Koanf from `~/.config/vgpr/config.toml` plus the currently supported `VGPR_*` env vars. Help and version still work even if config is broken. Subcommands still return explicit stub errors until the local and remote deployment flows land.
+Implementation note: the earlier Cobra/Koanf bootstrap slice was removed during the harness-only pivot. When the CLI returns, keep generated help, config loading, and the help/version behavior described here.
 
 ## command status
 
@@ -92,7 +94,7 @@ Bootstrap slice note: the top-level command tree, `--help`, `help <command>`, an
 | `restore` | Restore a named backup | later v1 |
 | `destroy` | Tear down local or remote deployment | after mock |
 
-## global flags [done]
+## global flags
 
 | Flag | Meaning |
 | --- | --- |

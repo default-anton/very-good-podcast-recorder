@@ -15,11 +15,7 @@ Rules:
 | --- | --- |
 | `docs/implementation-status.md` | temporary convention for marking which spec docs and sections are implemented |
 
-## planning
-
-| Path | Owns |
-| --- | --- |
-| `docs/issues/*.md` | draft GitHub issues and execution slices; the specs below stay the source of truth |
+The repo no longer keeps draft execution slices under `docs/issues/`.
 
 ## product shape
 
@@ -27,10 +23,10 @@ Rules:
 | --- | --- | --- |
 | `docs/architecture.md` | top-level system shape, component boundaries, stack choices | |
 | `docs/ux-contract.md` | v1 host/guest UX surface, required screens, status model, failure language | |
-| `docs/repo-layout.md` | repo/package layout | done |
+| `docs/repo-layout.md` | repo/package layout during the current harness-only pivot | |
 | `docs/local-stack.md` | local boot flow, profiles, env/config, port map, local logs/state/artifacts | |
-| `docs/version-pins.md` | host toolchain and third-party component version pins | |
-| `docs/feedback-loop.md` | local quality loop, hooks, CI, logging baseline | done |
+| `docs/version-pins.md` | host toolchain and target third-party runtime component version pins | |
+| `docs/feedback-loop.md` | local quality loop, hooks, CI, logging baseline | |
 | `docs/testing.md` | end-to-end harness shape and required scenarios | |
 
 ## deployment and ops

@@ -6,8 +6,29 @@ if [[ "${1:-}" == "--check" ]]; then
   mode="check"
 fi
 
-mapfile -t go_files < <(fd -t f -e go . cmd internal)
-mapfile -t frontend_files < <(fd -t f -e ts -e tsx . web e2e)
+go_roots=()
+for path in cmd internal; do
+  if [[ -d "$path" ]]; then
+    go_roots+=("$path")
+  fi
+done
+
+frontend_roots=()
+for path in web e2e; do
+  if [[ -d "$path" ]]; then
+    frontend_roots+=("$path")
+  fi
+done
+
+go_files=()
+if [[ ${#go_roots[@]} -gt 0 ]]; then
+  mapfile -t go_files < <(fd -t f -e go . "${go_roots[@]}")
+fi
+
+frontend_files=()
+if [[ ${#frontend_roots[@]} -gt 0 ]]; then
+  mapfile -t frontend_files < <(fd -t f -e ts -e tsx . "${frontend_roots[@]}")
+fi
 frontend_files+=(playwright.config.ts vitest.config.ts)
 
 if [[ ${#go_files[@]} -gt 0 ]]; then

@@ -4,6 +4,14 @@ Open-source remote podcast recording with a persistent host control plane, tempo
 
 This repo is for technical podcast hosts and producers who want the recording quality of local tracks without handing the whole workflow to a hosted platform.
 
+## Current repo status
+
+This repo is intentionally **harness-only** right now.
+
+All application implementation code was removed during the pivot. What remains is the product spec, the quality loop, the test runner/lint/typecheck harness, and the minimal repo-shape guardrails that keep those tools honest.
+
+Treat the product docs below as the target contract to restore, not as shipped behavior.
+
 ## How it works
 
 The main host runs or deploys a persistent control plane web app plus a private session-runner service. The control plane keeps the SQLite database for sessions and participants and gives the host one place to manage the recording. The session-runner owns the cloud and edge credentials needed to create and destroy temporary session servers.
@@ -53,7 +61,7 @@ It does not try to be a polished studio product yet.
 
 ## Setup and operations
 
-The default operator surface for v1 is a laptop-installed CLI: `vgpr`.
+The target operator surface for v1 is a laptop-installed CLI: `vgpr`.
 
 - macOS install path: `brew install default-anton/tap/vgpr`
 - CLI upgrade path: `brew upgrade vgpr`
@@ -65,9 +73,9 @@ The default operator surface for v1 is a laptop-installed CLI: `vgpr`.
 - first real compute provider: DigitalOcean
 - supported DNS providers for the hosted path: Cloudflare DNS and DigitalOcean DNS
 
-The CLI creates the initial admin account during setup. The browser should open to a login page, not to a public first-user-wins setup flow.
+When implementation returns, the CLI should create the initial admin account during setup. The browser should open to a login page, not to a public first-user-wins setup flow.
 
-See `docs/README.md` for the docs map, `docs/operator-cli.md` for the CLI contract, and `docs/releases.md` for release discovery and update behavior.
+The repo currently does **not** ship this CLI surface. See `docs/README.md` for the docs map, `docs/operator-cli.md` for the target CLI contract, and `docs/releases.md` for release discovery and update behavior.
 
 ## Bootstrap the repo
 
@@ -96,29 +104,29 @@ pnpm run check
 
 `pnpm run check` is the default local gate. It verifies formatting, lint, type checks, and tests without requiring browser-only validation.
 
-Focused proof commands for the bootstrap slice:
+Focused proof commands for the current harness slice:
 
 ```bash
-go test ./...
+go test ./internal/harness
+pnpm exec vitest run web/tests/tooling-harness.spec.ts web/tests/vite-config.spec.ts
 pnpm exec tsgo --noEmit -p web/control/tsconfig.json
 pnpm exec tsgo --noEmit -p web/session/tsconfig.json
-pnpm exec oxlint web/control/src/App.tsx web/session/src/App.tsx
-pnpm exec oxfmt --check web/control/src/App.tsx web/session/src/App.tsx
+pnpm exec oxlint vitest.config.ts web/control/vite.config.ts web/session/vite.config.ts web/tests/tooling-harness.spec.ts web/tests/vite-config.spec.ts
+pnpm exec oxfmt --check vitest.config.ts web/control/vite.config.ts web/session/vite.config.ts web/tests/tooling-harness.spec.ts web/tests/vite-config.spec.ts
 ```
 
-## Current bootstrap surface
+## Current harness surface
 
-The repo now contains these runnable skeleton entrypoints:
+The repo currently keeps these runnable guardrails alive:
 
-- `go run ./cmd/controlplane`
-- `go run ./cmd/sessionrunner`
-- `go run ./cmd/sessiond`
-- `go run ./cmd/vgpr --help`
-- `mise exec -- pnpm exec vite --config web/control/vite.config.ts`
-- `mise exec -- pnpm exec vite --config web/session/vite.config.ts`
+- `pnpm run format`
+- `pnpm run lint`
+- `pnpm run typecheck`
+- `pnpm run test`
+- `pnpm run check`
+- `pnpm exec playwright test --pass-with-no-tests`
 
-Backend services emit structured JSON logs to stderr. The CLI keeps primary output on stdout and diagnostics on stderr.
-Its bootstrap command tree and generated help surface now run through Cobra, and bootstrap-level non-secret defaults load through Koanf from `~/.config/vgpr/config.toml` plus the supported `VGPR_*` env vars.
+The Go side exists only to keep `go vet` and `go test` live with repo-shape assertions. The frontend side keeps Vite/Vitest/tsgo config plus fast guardrail tests under `web/tests/`.
 
 ## Likely users
 

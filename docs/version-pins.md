@@ -14,7 +14,7 @@ Keep one cross-runtime version pins doc.
 This doc owns the pinned versions for:
 
 - host toolchain versions
-- shipped third-party runtime components
+- target third-party runtime components
 
 Do **not** duplicate those pins in local-only or remote-only docs.
 
@@ -45,7 +45,9 @@ Bootstrap implementation notes:
 - `scripts/audit` pins `govulncheck` for deterministic vulnerability scans
 - root `package.json` pins Playwright, tsgo, oxlint, oxfmt, and prek in the lockfile-managed frontend toolchain
 
-## shipped runtime components
+## target runtime components
+
+The harness-only pivot currently ships no application runtime. The table below is the target stack to restore when implementation resumes.
 
 | Surface           | Version  | Notes                                   |
 | ----------------- | -------- | --------------------------------------- |

@@ -2,7 +2,7 @@
 
 ## recommendation
 
-The engineering baseline is not optional setup work. It is the mechanism that lets us ship the first product slices without slowing down or guessing.
+The engineering baseline is not optional setup work. It is the mechanism that lets us ship the next implementation slice without slowing down or guessing.
 
 ## goals
 
@@ -11,7 +11,7 @@ Optimize for:
 - fast local feedback
 - deterministic checks
 - text-first signals an agent can inspect
-- safe defaults before the first real feature lands
+- safe defaults before the next real feature lands
 
 ## local loop [done]
 
@@ -20,7 +20,7 @@ Every developer should have a small, boring default loop:
 1. format changed files
 2. lint changed files
 3. run relevant tests for changed code
-4. inspect structured logs when something fails
+4. inspect failing output before guessing
 
 Use:
 
@@ -61,50 +61,40 @@ CI runs the broader gates:
 
 Vulnerability scanning belongs in CI first, not the commit hook. It matters, but it must not make the inner loop miserable.
 
-## logging policy [done]
+## logging policy
 
-Structured logging starts in the engineering baseline.
+The repo is currently harness-only, so there are no backend or CLI log emitters to mark done.
 
-Requirements:
+Current requirements:
 
-- JSON logs for backend services
-- stable fields for `session_id`, `participant_id`, `track_id`, `chunk_id`, `role`
-- explicit error context, never silent failure
-- harness summaries emitted as JSON
+- scripts and tests fail with text-first, actionable output
+- any future harness summary should be machine-readable JSON
+- when backend or CLI code returns, keep stdout/stderr separation and use stable IDs like `session_id`, `participant_id`, `track_id`, and `chunk_id`
+- never silently swallow context that would block reproduction
 
-Bootstrap conventions:
+If a flow matters, it needs output we can grep and machine-parse.
 
-- backend services log to stderr with stdlib `slog` JSON handlers
-- every backend log line includes `component` and `log_kind`
-- CLI command results stay on stdout; diagnostics stay on stderr
-- future harness runs emit summary JSON under `.vgpr/local/e2e/` and use the same ID fields in logs
+## engineering baseline
 
-If a flow matters, it needs logs we can grep and machine-parse.
-
-## engineering baseline [done]
-
-**Goal:** create the minimum quality system that keeps the repo fast and trustworthy.
+**Goal:** keep the repo fast and trustworthy while application implementation is absent.
 
 **Must ship:**
 
-- initial repo skeleton matching `docs/repo-layout.md`
-- initial setup for the main surfaces: `web/control/`, `web/session/`, `cmd/controlplane/`, `cmd/sessionrunner/`, `cmd/sessiond/`, `cmd/vgpr/`, `e2e/`, `deploy/`, `scripts/`
-- formatter configured and runnable from one stable command
-- linter configured and runnable from one stable command
-- type checks configured and runnable from one stable command via `tsgo`
+- bootstrap instructions so a contributor can install deps and run the default checks quickly
+- `scripts/format`, `scripts/lint`, `scripts/typecheck`, `scripts/test`, and `scripts/check`
+- a small Go harness package so `go vet` and `go test` stay live
+- frontend tooling config for `web/control/` and `web/session/`
+- Vitest coverage for tooling and repo-shape guardrails
+- Playwright config plus `e2e/` placeholders for the future multi-participant harness
 - pre-commit hooks via `prek`
-- test command shape defined, even if the first suite is small
-- CI runs formatter, linter, tests, and vulnerability scan
-- structured logging conventions documented for backend, CLI, and harness code
-- bootstrap instructions so a new contributor can install deps and run the default checks quickly
+- CI or scripted audit coverage for formatting, lint, type checks, tests, and vulnerability scanning
 
 **Done when:**
 
 - a contributor can clone the repo, install dependencies, and discover the default checks quickly
-- the repo already has the expected top-level structure for backend, frontend, CLI, harness, deploy, and scripts work
+- the harness catches accidental reintroduction of retired implementation trees
 - staged Go and frontend changes are formatted and cheap semantic checks run before commit
 - CI blocks merges on broken formatting, lint, tests, or critical dependency issues
-- new code has an obvious place to put machine-readable logs
 
 **Non-goals:**
 

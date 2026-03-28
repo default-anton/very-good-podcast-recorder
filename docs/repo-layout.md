@@ -1,74 +1,54 @@
 # recommended repo layout
 
-## recommendation [done]
+## recommendation
 
-Keep one repo with one persistent control plane, one private session-runner, one temporary session service, one operator CLI, and one end-to-end harness.
+Keep one repo with the product specs plus the engineering harness that proves the repo can still format, lint, typecheck, and test cleanly.
 
-Do **not** introduce workspaces, shared packages, extra services, or separate repos until duplication or scale forces it.
+Do **not** respawn service binaries, browser apps, deploy assets, or database migrations until a new implementation slice is approved.
 
 ```text
 .
-├── cmd/
-│   ├── controlplane/     # Go entrypoint: host control plane API
-│   ├── sessionrunner/    # Go entrypoint: private session-server lifecycle reconciler
-│   ├── sessiond/         # Go entrypoint: temporary session API + upload ingest
-│   └── vgpr/             # Go entrypoint: operator CLI
-├── internal/
-│   ├── artifacts/        # session manifests, download assembly, file layout per docs/artifact-manifest.md
-│   ├── auth/             # signed join tokens, roles
-│   ├── controlplane/     # sessions, participants, provisioning intent/state
-│   ├── logging/          # structured log helpers and stable field names for services, CLI, and harness
-│   ├── provisioning/     # provider adapters, runner jobs, reconciliation
-│   ├── recordings/       # recording lifecycle, track state
-│   ├── sessions/         # temporary session state synced from control plane
-│   ├── uploads/          # chunk ingest, resume, retry bookkeeping
-│   └── vgpr/             # operator CLI surface and command wiring
-├── db/
-│   └── migrations/
-│       ├── controlplane/ # goose SQL migrations for the persistent control-plane SQLite DB
-│       └── sessiond/     # goose SQL migrations for the temporary session-server SQLite DB
-├── releases/
-│   ├── stable.json       # latest stable release feed consumed by `vgpr status`
-│   └── manifests/        # immutable per-version release manifests committed with each release
-├── web/
-│   ├── control/          # host control plane web app
-│   ├── session/          # browser join/room/recording app
-│   └── tests/            # frontend-local tests only; multi-participant harness lives in e2e/
+├── docs/                # product and engineering specs
 ├── e2e/
-│   ├── scenarios/        # happy path, reconnect, upload stall
-│   └── fixtures/         # fake media, deterministic inputs
-├── deploy/
-│   ├── local/            # local stack packaging, Compose, and dev-runtime assets
-│   ├── caddy/            # persistent edge / TLS router config
-│   ├── livekit/          # shared/local LiveKit config
-│   ├── host/             # persistent deployment systemd/config templates and host-bundle inputs
-│   └── session-server/   # cloud-init, systemd, config templates, bootstrap assets, release-bundle inputs
-├── scripts/              # stable one-command dev, CI, and release entrypoints
-├── testdata/             # backend fixtures and golden manifests
-└── docs/
+│   ├── fixtures/        # deterministic inputs reserved for future multi-participant harness work
+│   └── scenarios/       # future Playwright scenarios; may stay empty between implementation waves
+├── internal/
+│   └── harness/         # Go repo guardrails that keep go vet/go test live
+├── releases/
+│   ├── stable.json      # mutable latest-release feed
+│   └── manifests/       # immutable per-version release manifests
+├── scripts/             # stable quality-loop and audit entrypoints
+├── web/
+│   ├── control/         # Vite + tsgo config only; no app source during the pivot
+│   ├── session/         # Vite + tsgo config only; no app source during the pivot
+│   └── tests/           # Vitest guardrails for tooling and repo shape
+├── AGENTS.md
+├── go.mod
+├── mise.toml
+├── package.json
+├── playwright.config.ts
+├── README.md
+├── tsconfig.base.json
+└── vitest.config.ts
 ```
 
-## rules [done]
+## rules
 
-- `cmd/` stays thin. Business logic lives under `internal/`. CLI and services are sibling binaries.
-- `db/migrations/` is the only home for schema migrations. Keep control-plane and session-server histories separate.
-- `releases/` is the only home for machine-readable public release metadata. Keep the mutable stable feed and immutable per-version manifests there.
-- `web/` owns both browser surfaces: the host control plane and the participant session app.
-- `web/tests/` is for frontend-local tests. The reality-like multi-participant harness lives in `e2e/`.
-- `e2e/` is part of the product, not optional test polish.
-- `deploy/` owns only what is required to boot the local stack, the persistent host, the persistent edge, and one temporary session server. Keep host and session-server release inputs together instead of scattering them across the repo.
-- `scripts/` is the public interface for humans, CI, and release publication. Prefer a few stable commands over many ad hoc ones.
+- `internal/` is for harness-local Go code only until product implementation returns.
+- `web/control/` and `web/session/` own frontend tooling config only. Application source under `src/` stays absent during the pivot.
+- `web/tests/` is for fast tooling and repo-contract checks. The reality-like multi-participant harness still belongs in `e2e/` when it exists again.
+- `scripts/` is the public interface for humans, CI, and agents. Prefer a few stable commands over ad hoc tool invocations.
+- `docs/` stays the source of truth for product contracts. Keep implementation notes out of random markdown.
+- `releases/` is still the only home for machine-readable release metadata.
+- If a new implementation slice lands, reintroduce only the minimum directories that slice needs and update this doc in the same change.
 
 ## avoid for now
 
-Skip these until the repo proves it needs them:
+Skip these until an approved implementation slice forces them:
 
+- resurrecting `cmd/`, `db/`, or `deploy/` by default
 - `pkg/` public Go libraries
 - `packages/` or a JS workspace split
-- a separate repo for `vgpr`
-- a separate repo for deploy/bootstrap assets
-- a separate ingest service
+- a separate repo for CLI, deploy assets, or harness code
 - Terraform or multi-cloud provisioning code
 - server-side media post-processing pipelines
-
-The first split, if we hit real pressure, is **extract upload ingest from `sessiond`**. Do not pre-split before that.
