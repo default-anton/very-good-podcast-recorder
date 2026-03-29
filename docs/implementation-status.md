@@ -9,6 +9,8 @@ Related docs:
 
 Track implementation status inside the owning spec.
 
+Temporary exception: `docs/epics/*.md` may also use `[done]` in `Recommended PR slices` lists to show which planned slices already landed.
+
 Use one marker only: `[done]`.
 
 Example:
@@ -20,6 +22,7 @@ Example:
 ## rules
 
 - Use `[done]` on heading lines for implemented sections.
+- In `docs/epics/*.md`, use `[done]` only on `Recommended PR slices` bullet items.
 - Use `done` in `docs/README.md` `Impl` column only when the whole doc is implemented.
 - Blank means not done yet.
 - Do not use `wip`, `partial`, percentages, dates, badges, or a separate tracker.
@@ -52,6 +55,7 @@ Do not mark:
 - related-doc lists
 - recommendation, background, or rationale
 - non-normative notes
+- arbitrary epic prose outside `Recommended PR slices`
 
 ## process
 
@@ -60,8 +64,9 @@ For each implementation change:
 1. implement the slice
 2. add or update the narrow proof
 3. mark the owning section heading with `[done]`
-4. if that finishes the whole doc, mark `done` in `docs/README.md`
-5. before handoff, update the markers last
+4. if the work came from `docs/epics/*.md`, also mark the matching `Recommended PR slices` bullet `[done]`
+5. if that finishes the whole doc, mark `done` in `docs/README.md`
+6. before handoff, update the markers last
 
 ## lifecycle
 
