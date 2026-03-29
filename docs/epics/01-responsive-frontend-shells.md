@@ -3,7 +3,7 @@
 ## Recommended PR slices
 
 split into 2–3 PRs:
-- control app shell
+- control app shell [done]
 - session app shell
 - responsive/layout smoke assertions if needed
 
@@ -100,5 +100,7 @@ If layout confidence is weak, add one narrow Playwright smoke spec that asserts 
 ## notes
 
 Keep `web/control/` as the control-plane root and `web/session/` as the in-call app root. Do **not** collapse them into one frontend.
+
+For the first control-shell PR, a narrow Playwright smoke may boot `web/control/` directly from its own Vite config to keep the feedback loop fast. Do not carry that wiring past this epic: when the session-app-shell PR lands, widen or split the smoke setup so frontend coverage no longer hard-codes a single app server as the long-term test entrypoint. If later harness work supersedes that setup, `docs/testing.md` is the durable owner for the broader multi-app test entrypoint.
 
 If `shadcn` code is borrowed for speed, vendor only the needed pieces, strip the default styling, and restyle them to match `docs/frontend-design.md`.

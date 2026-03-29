@@ -59,7 +59,7 @@ Product support remains Chromium-first for live recording flows. Responsive layo
 
 ## required surfaces
 
-### 1. host session setup
+### 1. host session setup [done]
 
 The host setup flow must let the operator:
 
@@ -102,7 +102,7 @@ Responsive rules:
 - long display names must truncate safely without losing seat identity
 - the takeover action must stay explicit and hard to trigger accidentally
 
-### 3. session room
+### 3. session room [done]
 
 The room must stay simple. V1 requires:
 

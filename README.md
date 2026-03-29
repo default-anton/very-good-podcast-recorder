@@ -6,11 +6,11 @@ This repo is for technical podcast hosts and producers who want Riverside-style 
 
 ## Current repo status
 
-This repo is intentionally **harness-only** right now.
+This repo is no longer harness-only.
 
-All application implementation code was removed during the pivot. What remains is the product spec, the quality loop, the test runner/lint/typecheck harness, and the minimal repo-shape guardrails that keep those tools honest.
+The first restored implementation slice is in `web/control/`: a responsive host setup shell and host room shell with local-only state, plus narrow validation for layout and tooling.
 
-Treat the product docs below as the target contract to restore, not as shipped behavior.
+Everything else is still spec-first. Treat the product docs below as the target contract to restore, not as broadly shipped behavior yet.
 
 If you want the shortest path to the current intended product slice, start with `docs/alpha-scope.md` and then follow the linked owning specs.
 

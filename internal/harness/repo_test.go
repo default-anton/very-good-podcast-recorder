@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestRetiredImplementationPathsRemainAbsent(t *testing.T) {
+func TestLaterImplementationPathsRemainAbsent(t *testing.T) {
 	repoRoot := repoRoot(t)
 
 	for _, relativePath := range []string{
@@ -27,19 +27,17 @@ func TestRetiredImplementationPathsRemainAbsent(t *testing.T) {
 		"internal/uploads",
 		"internal/vgpr",
 		"testdata",
-		"web/control/index.html",
-		"web/control/src",
 		"web/session/index.html",
 		"web/session/src",
 	} {
 		_, err := os.Stat(filepath.Join(repoRoot, relativePath))
 		if !errors.Is(err, fs.ErrNotExist) {
-			t.Fatalf("%s should stay absent after the pivot, got err=%v", relativePath, err)
+			t.Fatalf("%s should stay absent until its implementation slice lands, got err=%v", relativePath, err)
 		}
 	}
 }
 
-func TestHarnessSurfaceStaysPresent(t *testing.T) {
+func TestHarnessAndControlShellSurfaceStaysPresent(t *testing.T) {
 	repoRoot := repoRoot(t)
 
 	for _, relativePath := range []string{
@@ -50,6 +48,16 @@ func TestHarnessSurfaceStaysPresent(t *testing.T) {
 		"scripts/lint",
 		"scripts/test",
 		"scripts/typecheck",
+		"web/control/index.html",
+		"web/control/src/app/App.tsx",
+		"web/control/src/app/components/RecordingStatusBar.tsx",
+		"web/control/src/app/components/SeatList.tsx",
+		"web/control/src/app/components/SessionForm.tsx",
+		"web/control/src/app/routes/SessionRoomPage.tsx",
+		"web/control/src/app/routes/SessionSetupPage.tsx",
+		"web/control/src/app/lib/types.ts",
+		"web/control/src/main.tsx",
+		"web/control/src/styles.css",
 		"web/control/tsconfig.json",
 		"web/control/vite.config.ts",
 		"web/session/tsconfig.json",
@@ -58,7 +66,7 @@ func TestHarnessSurfaceStaysPresent(t *testing.T) {
 		"web/tests/vite-config.spec.ts",
 	} {
 		if _, err := os.Stat(filepath.Join(repoRoot, relativePath)); err != nil {
-			t.Fatalf("%s should stay present for the harness, got err=%v", relativePath, err)
+			t.Fatalf("%s should stay present for the current repo slice, got err=%v", relativePath, err)
 		}
 	}
 }
