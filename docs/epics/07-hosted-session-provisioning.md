@@ -1,4 +1,13 @@
-# issue 07 — hosted session provisioning
+# epic 07 — hosted session provisioning
+
+## Recommended PR slices
+
+split into 4–5 PRs:
+- provisioning intent/state model
+- release bundle/checksum plumbing
+- VM bootstrap + readiness
+- DNS/TLS integration
+- replacement/teardown smoke path
 
 Related docs:
 

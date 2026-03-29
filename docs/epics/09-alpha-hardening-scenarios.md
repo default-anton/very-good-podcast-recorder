@@ -1,4 +1,13 @@
-# issue 09 — alpha hardening scenarios
+# epic 09 — alpha hardening scenarios
+
+## Recommended PR slices
+
+split into separate issues entirely:
+- repeated screen share hardening
+- multi-camera
+- reconnect/reclaim
+- upload stall/resume
+- shared hosted rehearsal/log preservation plumbing
 
 Related docs:
 

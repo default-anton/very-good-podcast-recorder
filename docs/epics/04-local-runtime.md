@@ -1,4 +1,10 @@
-# issue 04 — real local runtime
+# epic 04 — real local runtime
+
+## Recommended PR slices
+
+already about right as 1 PR:
+- local runtime compose/config/scripts
+- smoke command + inspectable health/log output
 
 Related docs:
 

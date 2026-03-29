@@ -1,4 +1,11 @@
-# issue 02 — control-plane local API in `web/control`
+# epic 02 — control-plane local API in `web/control`
+
+## Recommended PR slices
+
+split into 2–3 PRs:
+- local API/router/bootstrap contract
+- session + seat CRUD wiring
+- guest/bootstrap fetch integration
 
 Related docs:
 

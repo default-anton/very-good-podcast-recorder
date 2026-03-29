@@ -9,6 +9,7 @@ const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 describe("harness-only pivot", () => {
   it("keeps the quality scripts in place", () => {
     for (const relativePath of [
+      "docs/epics",
       "scripts/check",
       "scripts/format",
       "scripts/lint",
@@ -24,7 +25,6 @@ describe("harness-only pivot", () => {
       "cmd",
       "db",
       "deploy",
-      "docs/issues",
       "internal/artifacts",
       "internal/auth",
       "internal/controlplane",

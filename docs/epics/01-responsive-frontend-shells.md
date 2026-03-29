@@ -1,4 +1,11 @@
-# issue 01 — responsive frontend shells
+# epic 01 — responsive frontend shells
+
+## Recommended PR slices
+
+split into 2–3 PRs:
+- control app shell
+- session app shell
+- responsive/layout smoke assertions if needed
 
 Related docs:
 

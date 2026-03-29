@@ -1,4 +1,10 @@
-# issue 06 — repeated screen-share path
+# epic 06 — repeated screen-share path
+
+## Recommended PR slices
+
+already about right as 1 PR:
+- repeated screen-share scenario
+- manifest/source-instance assertions
 
 Related docs:
 

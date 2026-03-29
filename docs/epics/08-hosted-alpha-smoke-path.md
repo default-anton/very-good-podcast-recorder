@@ -1,4 +1,13 @@
-# issue 08 — hosted alpha smoke path
+# epic 08 — hosted alpha smoke path
+
+## Recommended PR slices
+
+if issue 07 is already landed cleanly, keep this as 1 PR:
+- hosted smoke scenario + summary/artifact verification
+
+otherwise split into 2 PRs:
+- hosted smoke harness plumbing against the deployed control plane
+- end-to-end hosted smoke assertions, artifact verification, and teardown checks
 
 Related docs:
 

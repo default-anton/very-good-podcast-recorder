@@ -16,7 +16,6 @@ func TestRetiredImplementationPathsRemainAbsent(t *testing.T) {
 		"cmd",
 		"db",
 		"deploy",
-		"docs/issues",
 		"internal/artifacts",
 		"internal/auth",
 		"internal/controlplane",
@@ -45,6 +44,7 @@ func TestHarnessSurfaceStaysPresent(t *testing.T) {
 
 	for _, relativePath := range []string{
 		"docs/README.md",
+		"docs/epics",
 		"scripts/check",
 		"scripts/format",
 		"scripts/lint",

@@ -15,8 +15,8 @@ Rules:
 | --- | --- |
 | `docs/implementation-status.md` | temporary convention for marking which spec docs and sections are implemented |
 
-The repo normally keeps source-of-truth specs outside `docs/issues/`.
-User-requested execution plans or issue drafts may live there temporarily, but they do **not** replace the owning specs.
+The repo normally keeps source-of-truth specs outside `docs/epics/`.
+User-requested execution plans or epic drafts may live there temporarily, but they do **not** replace the owning specs.
 
 ## product shape
 
