@@ -5,6 +5,7 @@ Related docs:
 - `docs/README.md`
 - `README.md`
 - `docs/architecture.md`
+- `docs/frontend-design.md`
 - `docs/identity.md`
 - `docs/seat-claim-protocol.md`
 - `docs/session-lifecycle.md`
@@ -24,7 +25,7 @@ The v1 promise is:
 - make failures explicit before they become support mysteries
 - keep the UI usable across common viewport sizes
 
-This doc owns user-visible behavior, not visual design.
+This doc owns user-visible behavior, not visual design. Visual direction and frontend component rules live in `docs/frontend-design.md`.
 
 ## core product model
 

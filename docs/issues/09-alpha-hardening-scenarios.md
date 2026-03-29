@@ -3,6 +3,8 @@
 Related docs:
 
 - `docs/alpha-scope.md`
+- `docs/ux-contract.md`
+- `docs/frontend-design.md`
 - `docs/testing.md`
 - `docs/capture-profile.md`
 - `docs/seat-claim-protocol.md`
@@ -49,11 +51,14 @@ Also add hosted rehearsal plumbing that preserves summary JSON, structured logs,
 - reconnect/reclaim avoids ambiguous identity and keeps track timeline semantics explicit
 - upload stall/resume never silently drops already-recorded media
 - degraded vs failed recording signals stay explicit in UI, manifests, and logs
+- UI assertions check the explicit text labels for critical failure-state communication, not color or icon changes alone
 - rehearsal runs preserve enough logs and artifacts to debug failures after the fact
 
 ## feedback loop
 
 Run each scenario narrowly locally first, then on the hosted rehearsal path as soon as the hosted smoke path is stable.
+
+For UI checks, prefer text assertions for states such as `recording`, `draining`, `degraded`, `failed`, `reconnecting`, and `catching_up` so the product contract stays testable without visual diff fragility.
 
 ```bash
 mise exec -- pnpm exec playwright test e2e/scenarios/repeated-screen-share.spec.ts

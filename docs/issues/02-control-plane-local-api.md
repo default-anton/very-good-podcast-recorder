@@ -4,6 +4,7 @@ Related docs:
 
 - `docs/alpha-scope.md`
 - `docs/architecture.md`
+- `docs/frontend-design.md`
 - `docs/identity.md`
 - `docs/repo-layout.md`
 
@@ -29,6 +30,7 @@ web/control/
     └── app/
         └── lib/
             ├── api.ts
+            ├── query.ts
             └── state.ts
 ```
 
@@ -38,6 +40,7 @@ Implement only what milestone 1 needs:
 - create/edit seats
 - generate stable host/guest links
 - return bootstrap data used by `web/session`
+- use TanStack Query for control-plane fetch/cache work instead of ad hoc request state sprawl
 
 ## non-goals
 
@@ -73,3 +76,5 @@ mise exec -- pnpm exec oxfmt --check web/control/src
 ## notes
 
 Do **not** split control-plane UI and API into separate top-level roots unless deployment pain proves we need it later.
+
+Frontend work in `web/control/` should follow `docs/frontend-design.md`: Tailwind CSS, Radix primitives where they buy accessibility, and thin in-repo wrappers instead of a stock component library.

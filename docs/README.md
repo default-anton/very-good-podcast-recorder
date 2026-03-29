@@ -25,6 +25,7 @@ User-requested execution plans or issue drafts may live there temporarily, but t
 | `docs/alpha-scope.md` | exact hosted-alpha cut line, deferred surfaces, end-to-end flow, and 3 implementation milestones | |
 | `docs/architecture.md` | hosted-alpha system shape, component boundaries, stack choices | |
 | `docs/ux-contract.md` | v1 host/guest UX surface, responsive behavior, required screens, status model, failure language | |
+| `docs/frontend-design.md` | frontend UI stack, visual direction, design tokens, and component-library policy | |
 | `docs/repo-layout.md` | current repo shape and where new alpha implementation should land | |
 | `docs/local-stack.md` | internal dev harness and local runtime contract; not a user-facing deployment story | |
 | `docs/version-pins.md` | host toolchain and target third-party runtime component version pins | |

@@ -5,6 +5,7 @@ Related docs:
 - `README.md`
 - `docs/README.md`
 - `docs/architecture.md`
+- `docs/frontend-design.md`
 - `docs/public-networking.md`
 - `docs/session-server-bootstrap.md`
 - `docs/operator-cli.md`

@@ -4,12 +4,13 @@ Related docs:
 
 - `docs/alpha-scope.md`
 - `docs/ux-contract.md`
+- `docs/frontend-design.md`
 - `docs/repo-layout.md`
 - `docs/testing.md`
 
 ## goal
 
-Land the first real frontend code in the right places and prove the core host/join/room shells work responsively.
+Land the first real frontend code in the right places and prove the core host/join/room shells work responsively with the alpha visual system already in place.
 
 ## scope
 
@@ -54,12 +55,16 @@ Build only:
 - responsive join flow shell
 - responsive room shell
 - enough local state to exercise layout and interaction shells
+- the initial `studio utility` visual baseline from `docs/frontend-design.md`
+- Tailwind-based design tokens, IBM Plex Sans/Mono, and warm dark panel styling
+- React Router app shells and thin in-repo UI wrappers for the first product primitives
 
 ## non-goals
 
 - real control-plane persistence
 - real session-server integration
 - shared frontend package extraction
+- a full `shadcn/ui` component dump or stock `shadcn` look
 - visual polish beyond usability and clarity
 
 ## acceptance criteria
@@ -69,6 +74,8 @@ Build only:
 - recording state/status bars stay visible in supported layouts
 - no horizontal-scroll requirement for core actions on common laptop/tablet widths
 - host and guest flows match the UX contract well enough to start wiring real APIs next
+- both apps clearly share one visual language and already read as `studio utility`, not a generic SaaS dashboard
+- the initial primitive layer follows the stack in `docs/frontend-design.md`: Tailwind CSS, Radix where needed, and in-repo wrappers instead of a stock component kit
 
 ## feedback loop
 
@@ -86,3 +93,5 @@ If layout confidence is weak, add one narrow Playwright smoke spec that asserts 
 ## notes
 
 Keep `web/control/` as the control-plane root and `web/session/` as the in-call app root. Do **not** collapse them into one frontend.
+
+If `shadcn` code is borrowed for speed, vendor only the needed pieces, strip the default styling, and restyle them to match `docs/frontend-design.md`.

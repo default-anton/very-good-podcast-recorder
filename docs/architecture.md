@@ -4,6 +4,7 @@ Related docs:
 
 - `docs/README.md`
 - `docs/alpha-scope.md`
+- `docs/frontend-design.md`
 - `docs/repo-layout.md`
 - `docs/local-stack.md`
 - `docs/version-pins.md`
@@ -89,7 +90,7 @@ For alpha, keep this minimal:
 
 ## stack
 
-- **frontend**: TypeScript, React, Vite, `tsgo` for type checks
+- **frontend**: client-rendered TypeScript, React, Vite, React Router, Tailwind CSS, Radix UI primitives, thin in-repo UI wrappers, and `tsgo` for type checks
 - **responsive UI requirement**: all host and guest screens must reflow cleanly across common viewport sizes; responsive does **not** imply broad mobile recording support yet
 - **persistent control plane**: Cloudflare Workers
 - **control-plane state**: Cloudflare D1
@@ -169,6 +170,7 @@ For the exact shipped cut line, deferred surfaces, end-to-end alpha flow, and th
 
 Use the other docs for the detailed contracts:
 
+- frontend UI stack and visual direction → `docs/frontend-design.md`
 - networking and hostnames → `docs/public-networking.md`
 - temporary-server bootstrap and readiness → `docs/session-server-bootstrap.md`
 - alpha deployment boundary and deferred CLI → `docs/operator-cli.md`

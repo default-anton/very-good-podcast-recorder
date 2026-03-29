@@ -3,6 +3,8 @@
 Related docs:
 
 - `docs/alpha-scope.md`
+- `docs/ux-contract.md`
+- `docs/frontend-design.md`
 - `docs/testing.md`
 - `docs/public-networking.md`
 - `docs/session-lifecycle.md`
@@ -27,6 +29,7 @@ Automate:
 - create a session and seat roster through the hosted control plane
 - provision the disposable session backend
 - join host + 2 guests through the stable human links
+- assert the critical text-first UI states are visible on the hosted path: setup actions, recording status, draining state, and artifact readiness
 - record long enough to produce multiple chunks per baseline source
 - stop recording and wait for upload drain
 - download raw artifacts and verify manifests
@@ -48,6 +51,7 @@ Automate:
 - the run summary captures hostname, backend ID, seat identity mapping, chunk counts, artifact result, and teardown result
 - teardown removes both the backend and DNS record cleanly
 - failed runs preserve enough logs and artifacts to debug without video review
+- the smoke path proves critical operational UI remains text-first and visible without hover-only or icon-only interpretation
 
 ## feedback loop
 
