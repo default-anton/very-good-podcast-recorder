@@ -99,44 +99,6 @@ mise exec -- pnpm run check
 
 Use `mise exec -- ...` unless your shell already activates `mise` shims. That keeps the repo off `corepack` and avoids accidentally picking up an old `pnpm` shim from `PATH`.
 
-## Default quality loop
-
-The stable repo commands are:
-
-```bash
-pnpm run format
-pnpm run lint
-pnpm run typecheck
-pnpm run test
-pnpm run check
-```
-
-`pnpm run check` is the default local gate. It verifies formatting, lint, type checks, and tests without requiring browser-only validation.
-
-Focused proof commands for the current harness slice:
-
-```bash
-go test ./internal/harness
-pnpm exec vitest run web/tests/tooling-harness.spec.ts web/tests/vite-config.spec.ts
-pnpm exec tsgo --noEmit -p web/control/tsconfig.json
-pnpm exec tsgo --noEmit -p web/session/tsconfig.json
-pnpm exec oxlint vitest.config.ts web/control/vite.config.ts web/session/vite.config.ts web/tests/tooling-harness.spec.ts web/tests/vite-config.spec.ts
-pnpm exec oxfmt --check vitest.config.ts web/control/vite.config.ts web/session/vite.config.ts web/tests/tooling-harness.spec.ts web/tests/vite-config.spec.ts
-```
-
-## Current harness surface
-
-The repo currently keeps these runnable guardrails alive:
-
-- `pnpm run format`
-- `pnpm run lint`
-- `pnpm run typecheck`
-- `pnpm run test`
-- `pnpm run check`
-- `pnpm exec playwright test --pass-with-no-tests`
-
-The Go side exists only to keep `go vet` and `go test` live with repo-shape assertions. The frontend side keeps Vite/Vitest/tsgo config plus fast guardrail tests under `web/tests/`.
-
 ## Likely users
 
 - indie podcasters with remote guests
