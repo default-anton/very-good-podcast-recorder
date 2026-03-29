@@ -187,6 +187,20 @@ Pass criteria:
 - manifest makes the interruption explicit
 - final uploaded chunk set is complete or the missing range is explicit and detectable
 
+## interim frontend shell smoke [done]
+
+Until the real multi-seat local stack exists, keep one fast Playwright smoke for each frontend root:
+
+- `e2e/scenarios/control-shell.spec.ts`
+- `e2e/scenarios/session-shell.spec.ts`
+
+Rules:
+
+- boot both Vite apps from `playwright.config.ts`; do **not** keep frontend coverage hard-wired to one app server
+- assert one narrow and one wide viewport for the required setup/join/room shell controls
+- assert no horizontal scroll for the core actions under those viewports
+- treat these as fast shell proof only, not as a replacement for the real local-stack harness above
+
 ## later scenarios
 
 These still matter, but they are **not** alpha must-pass before the first hosted cut ships:

@@ -4,8 +4,8 @@
 
 split into 2–3 PRs:
 - control app shell [done]
-- session app shell
-- responsive/layout smoke assertions if needed
+- session app shell [done]
+- responsive/layout smoke assertions if needed [done]
 
 Related docs:
 

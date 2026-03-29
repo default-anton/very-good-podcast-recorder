@@ -78,7 +78,7 @@ Responsive rules:
 - seat rows may stack on narrow layouts, but seat identity and role must stay obvious
 - copy-link actions must remain tap/click friendly
 
-### 2. join flow
+### 2. join flow [done]
 
 The join flow must do this in order:
 

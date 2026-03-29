@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from "react";
 import { Navigate, Route, Routes, useParams } from "react-router-dom";
 
+import { buildDemoJoinKey, buildJoinUrl } from "../../../shared/joinLinks";
 import type { ControlSession, DemoPreset, RecordingHealth, Seat, SessionStatus } from "./lib/types";
 import { SessionRoomPage } from "./routes/SessionRoomPage";
 import { SessionSetupPage } from "./routes/SessionSetupPage";
@@ -378,8 +379,18 @@ function createInitialSession(sessionId = DEFAULT_SESSION_ID): ControlSession {
   return {
     id: sessionId,
     links: {
-      guest: `https://app.vgpr.dev/join/guest/${sessionId}`,
-      host: `https://app.vgpr.dev/join/host/${sessionId}`,
+      guest: buildJoinUrl(
+        "https://app.vgpr.dev",
+        sessionId,
+        "guest",
+        buildDemoJoinKey(sessionId, "guest"),
+      ),
+      host: buildJoinUrl(
+        "https://app.vgpr.dev",
+        sessionId,
+        "host",
+        buildDemoJoinKey(sessionId, "host"),
+      ),
     },
     nextSeatNumber: 4,
     recordingHealth: "healthy",

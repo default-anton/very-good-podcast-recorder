@@ -1,6 +1,10 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
+import { buildDemoJoinKey, buildJoinUrl } from "../../web/shared/joinLinks";
+
+test.use({ baseURL: "http://127.0.0.1:5173" });
+
 for (const viewport of [
   { height: 1024, name: "narrow tablet", width: 768 },
   { height: 900, name: "wide laptop", width: 1440 },
@@ -117,13 +121,25 @@ test("terminal room states cover failed recording and ended hosted run", async (
 test("session state follows client-side navigation to a different session id", async ({ page }) => {
   await page.goto("/sessions/route-a");
   await page.getByLabel("Session title").fill("Session A was edited");
-  await expect(page.getByText("https://app.vgpr.dev/join/host/route-a")).toBeVisible();
+  await expect(
+    page.getByText(
+      buildJoinUrl("https://app.vgpr.dev", "route-a", "host", buildDemoJoinKey("route-a", "host")),
+    ),
+  ).toBeVisible();
 
   await navigateWithinSpa(page, "/sessions/route-b");
 
   await expect(page).toHaveURL(/\/sessions\/route-b$/);
-  await expect(page.getByText("https://app.vgpr.dev/join/host/route-b")).toBeVisible();
-  await expect(page.getByText("https://app.vgpr.dev/join/host/route-a")).toHaveCount(0);
+  await expect(
+    page.getByText(
+      buildJoinUrl("https://app.vgpr.dev", "route-b", "host", buildDemoJoinKey("route-b", "host")),
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      buildJoinUrl("https://app.vgpr.dev", "route-a", "host", buildDemoJoinKey("route-a", "host")),
+    ),
+  ).toHaveCount(0);
   await expect(page.getByLabel("Session title")).toHaveValue("Late Night Tape Check");
   await expect(page.getByText("route-b", { exact: true })).toBeVisible();
 });
