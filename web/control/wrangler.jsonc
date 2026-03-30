@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "very-good-podcast-recorder-control",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-03-20",
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./dist"
+  }
+}

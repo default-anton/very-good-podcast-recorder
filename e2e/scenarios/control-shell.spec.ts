@@ -1,8 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
-import { buildDemoJoinKey, buildJoinUrl } from "../../web/shared/joinLinks";
-
 test.use({ baseURL: "http://127.0.0.1:5173" });
 
 for (const viewport of [
@@ -40,6 +38,9 @@ test("copy link reports failure when clipboard access is unavailable", async ({ 
   });
 
   await page.goto("/");
+  await expect(roleLinkUrl(page, "host")).toContainText(
+    /^http:\/\/127\.0\.0\.1:5174\/join\/amber-session-01\/host\?k=local-host-/,
+  );
   await page.getByRole("button", { name: "Copy" }).first().click();
 
   await expect(
@@ -121,25 +122,20 @@ test("terminal room states cover failed recording and ended hosted run", async (
 test("session state follows client-side navigation to a different session id", async ({ page }) => {
   await page.goto("/sessions/route-a");
   await page.getByLabel("Session title").fill("Session A was edited");
-  await expect(
-    page.getByText(
-      buildJoinUrl("https://app.vgpr.dev", "route-a", "host", buildDemoJoinKey("route-a", "host")),
-    ),
-  ).toBeVisible();
+
+  const routeAHostLink = roleLinkUrl(page, "host");
+
+  await expect(routeAHostLink).toContainText(
+    /^http:\/\/127\.0\.0\.1:5174\/join\/route-a\/host\?k=local-host-/,
+  );
 
   await navigateWithinSpa(page, "/sessions/route-b");
 
   await expect(page).toHaveURL(/\/sessions\/route-b$/);
-  await expect(
-    page.getByText(
-      buildJoinUrl("https://app.vgpr.dev", "route-b", "host", buildDemoJoinKey("route-b", "host")),
-    ),
-  ).toBeVisible();
-  await expect(
-    page.getByText(
-      buildJoinUrl("https://app.vgpr.dev", "route-a", "host", buildDemoJoinKey("route-a", "host")),
-    ),
-  ).toHaveCount(0);
+  await expect(roleLinkUrl(page, "host")).toContainText(
+    /^http:\/\/127\.0\.0\.1:5174\/join\/route-b\/host\?k=local-host-/,
+  );
+  await expect(roleLinkUrl(page, "host")).not.toContainText("/join/route-a/host?");
   await expect(page.getByLabel("Session title")).toHaveValue("Late Night Tape Check");
   await expect(page.getByText("route-b", { exact: true })).toBeVisible();
 });
@@ -158,6 +154,10 @@ async function openRoomShell(page: Page, sessionId: string) {
 
 function seatStatusRow(page: Page, displayName: string) {
   return page.locator("li").filter({ hasText: displayName });
+}
+
+function roleLinkUrl(page: Page, role: "guest" | "host") {
+  return page.getByTestId(`role-link-url-${role}`);
 }
 
 async function navigateWithinSpa(page: Page, path: string) {

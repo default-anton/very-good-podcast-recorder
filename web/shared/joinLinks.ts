@@ -1,7 +1,7 @@
 export type JoinLinkRole = "host" | "guest";
 
 export function buildJoinPath(sessionId: string, role: JoinLinkRole) {
-  return `/join/${sessionId}/${role}`;
+  return `/join/${encodePathSegment(sessionId)}/${role}`;
 }
 
 export function buildJoinRoomPath(sessionId: string, role: JoinLinkRole) {
@@ -29,4 +29,8 @@ export function buildJoinUrl(
 
 export function buildDemoJoinKey(sessionId: string, role: JoinLinkRole) {
   return `demo-${sessionId}-${role}-key`;
+}
+
+function encodePathSegment(value: string) {
+  return encodeURIComponent(value);
 }

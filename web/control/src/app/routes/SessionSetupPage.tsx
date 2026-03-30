@@ -2,9 +2,10 @@ import { ClipboardCheck, ExternalLink, Link2, MonitorCog } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { useControlApp } from "../App";
+import { createControlRoomPath } from "../lib/api";
 import { SessionForm } from "../components/SessionForm";
 import { Card, CardBody, CardHeader, SectionHeading } from "../components/ui";
-import { useControlApp } from "../App";
 
 export function SessionSetupPage() {
   const {
@@ -13,6 +14,8 @@ export function SessionSetupPage() {
     joinOperatorRoom,
     operatorSeatId,
     removeSeat,
+    roleLinks,
+    roleLinksStatus,
     session,
     setSessionStatus,
     setTitle,
@@ -42,8 +45,18 @@ export function SessionSetupPage() {
   }, [copyFeedback]);
 
   async function handleCopyLink(role: "host" | "guest") {
-    const value = session.links[role];
-    const copied = await copyText(value);
+    if (roleLinks === null) {
+      setCopyFeedback({
+        message:
+          roleLinksStatus === "error"
+            ? `${role} link unavailable — local control API did not return the role URLs.`
+            : `${role} link is still loading from the local control API.`,
+        tone: "danger",
+      });
+      return;
+    }
+
+    const copied = await copyText(roleLinks[role]);
 
     if (copied) {
       setCopyFeedback({ message: `${role} link copied to clipboard`, tone: "ok" });
@@ -62,7 +75,7 @@ export function SessionSetupPage() {
     }
 
     joinOperatorRoom();
-    navigate(`/sessions/${currentSessionId}/room`);
+    navigate(createControlRoomPath(currentSessionId));
   }
 
   return (
@@ -76,6 +89,8 @@ export function SessionSetupPage() {
 
         <SessionForm
           disabled={editingLocked}
+          links={roleLinks}
+          linksStatus={roleLinksStatus}
           onAddSeat={addSeat}
           onCopyLink={(role) => {
             void handleCopyLink(role);

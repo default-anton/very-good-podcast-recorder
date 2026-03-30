@@ -1,11 +1,13 @@
 import { Link2, RadioTower, Save } from "lucide-react";
 
-import type { ControlSession, Seat } from "../lib/types";
+import type { ControlSession, Seat, SessionLinks } from "../lib/types";
 import { SeatList } from "./SeatList";
 import { Button, Card, CardBody, CardHeader, Input, Pill } from "./ui";
 
 export function SessionForm({
   disabled,
+  links,
+  linksStatus,
   onAddSeat,
   onCopyLink,
   onOpenRoom,
@@ -17,6 +19,8 @@ export function SessionForm({
   session,
 }: {
   disabled: boolean;
+  links: SessionLinks | null;
+  linksStatus: "error" | "loading" | "ready";
   onAddSeat: () => void;
   onCopyLink: (role: "host" | "guest") => void;
   onOpenRoom: () => void;
@@ -139,27 +143,68 @@ export function SessionForm({
           <h3 className="mt-3 text-xl font-semibold text-text">Stable role URLs</h3>
         </CardHeader>
         <CardBody className="grid gap-4 lg:grid-cols-2">
-          <LinkCard label="Host" onCopy={() => onCopyLink("host")} url={session.links.host} />
-          <LinkCard label="Guest" onCopy={() => onCopyLink("guest")} url={session.links.guest} />
+          <LinkCard
+            copyDisabled={links === null}
+            label="Host"
+            onCopy={() => onCopyLink("host")}
+            status={linksStatus}
+            url={links?.host ?? null}
+          />
+          <LinkCard
+            copyDisabled={links === null}
+            label="Guest"
+            onCopy={() => onCopyLink("guest")}
+            status={linksStatus}
+            url={links?.guest ?? null}
+          />
         </CardBody>
       </Card>
     </div>
   );
 }
 
-function LinkCard({ label, onCopy, url }: { label: string; onCopy: () => void; url: string }) {
+function LinkCard({
+  copyDisabled,
+  label,
+  onCopy,
+  status,
+  url,
+}: {
+  copyDisabled: boolean;
+  label: string;
+  onCopy: () => void;
+  status: "error" | "loading" | "ready";
+  url: string | null;
+}) {
   return (
-    <div className="raised-surface p-4">
+    <div className="raised-surface p-4" data-testid={`role-link-${label.toLowerCase()}`}>
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="section-label">{label} link</p>
-          <p className="mt-2 break-all font-mono text-sm text-text">{url}</p>
+          <p
+            className="mt-2 break-all font-mono text-sm text-text"
+            data-testid={`role-link-url-${label.toLowerCase()}`}
+          >
+            {url ?? missingLinkMessage(status)}
+          </p>
         </div>
-        <Button onClick={onCopy} size="sm" variant="secondary">
+        <Button disabled={copyDisabled} onClick={onCopy} size="sm" variant="secondary">
           <Link2 className="size-4" />
           Copy
         </Button>
       </div>
     </div>
   );
+}
+
+function missingLinkMessage(status: "error" | "loading" | "ready") {
+  if (status === "loading") {
+    return "Loading local role link…";
+  }
+
+  if (status === "error") {
+    return "Local control API did not return this role link.";
+  }
+
+  return "Role link unavailable.";
 }

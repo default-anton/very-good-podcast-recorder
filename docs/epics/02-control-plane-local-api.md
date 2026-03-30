@@ -3,7 +3,7 @@
 ## Recommended PR slices
 
 split into 2–3 PRs:
-- local API/router/bootstrap contract
+- [done] local API/router/bootstrap contract
 - session + seat CRUD wiring
 - guest/bootstrap fetch integration
 
@@ -85,6 +85,16 @@ mise exec -- pnpm exec playwright test e2e/scenarios/session-shell.spec.ts
 mise exec -- pnpm exec oxlint web/control/src
 mise exec -- pnpm exec oxfmt --check web/control/src
 ```
+
+## local contract notes
+
+The local bootstrap contract is intentionally strict:
+
+- `PUT /api/v1/sessions/:sessionId` provisions the in-memory local session contract and returns the current role links
+- `GET /api/v1/sessions/:sessionId` and bootstrap reads return `404` until that session was provisioned explicitly
+- local host/guest join keys are opaque bearer secrets, not deterministic demo strings, and the returned role links target the local session-app root
+- bootstrap CORS is limited to the approved local session-app origins; session-summary responses stay same-origin only
+- the control shell reads role links from the local API contract, and the session shell provisions its default local guest link before redirecting into `/join/:sessionId/:role`
 
 ## notes
 

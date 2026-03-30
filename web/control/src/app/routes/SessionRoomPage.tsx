@@ -12,11 +12,12 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { useControlApp } from "../App";
 import { RecordingStatusBar } from "../components/RecordingStatusBar";
 import { SeatList } from "../components/SeatList";
 import { Button, Card, CardBody, CardHeader, Pill, SectionHeading, Select } from "../components/ui";
+import { createControlSessionPath } from "../lib/api";
 import type { Seat } from "../lib/types";
-import { useControlApp } from "../App";
 
 export function SessionRoomPage() {
   const {
@@ -49,7 +50,7 @@ export function SessionRoomPage() {
 
   function handleLeaveSession() {
     leaveOperatorRoom();
-    navigate(`/sessions/${currentSessionId}`);
+    navigate(createControlSessionPath(currentSessionId));
   }
 
   return (
@@ -57,7 +58,7 @@ export function SessionRoomPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button
           onClick={() => {
-            navigate(`/sessions/${currentSessionId}`);
+            navigate(createControlSessionPath(currentSessionId));
           }}
           size="sm"
           variant="ghost"
