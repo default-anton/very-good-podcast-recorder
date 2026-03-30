@@ -19,7 +19,7 @@ Automate the first must-pass scenario and make it the default truth source for m
 
 ## scope
 
-Add:
+Add or extend:
 
 ```text
 e2e/fixtures/
@@ -43,6 +43,7 @@ Automate:
 - host stops recording
 - manifests/raw files verify cleanly
 - machine-readable summary is emitted
+- keep the existing shell smoke specs as fast frontend-only proof; the real-stack harness adds to them instead of replacing them
 
 ## non-goals
 
@@ -58,6 +59,7 @@ Automate:
 - it exercises the real local stack, not mocks
 - summary JSON is emitted and inspectable
 - final artifact layout and manifest expectations are validated
+- `e2e/scenarios/control-shell.spec.ts` and `e2e/scenarios/session-shell.spec.ts` remain as a cheap frontend preflight separate from the real-stack scenario
 - the scenario is reliable enough to gate more milestone-1 work
 
 ## feedback loop
@@ -68,7 +70,7 @@ The primary proof command is:
 mise exec -- pnpm exec playwright test e2e/scenarios/happy-path.spec.ts
 ```
 
-If the signal is weak, improve fixture determinism and summary/log outputs before adding more scenarios.
+If the signal is weak, first run the existing control/session shell smokes to separate pure frontend regressions from runtime or harness regressions, then improve fixture determinism and summary/log outputs before adding more scenarios.
 
 ## notes
 

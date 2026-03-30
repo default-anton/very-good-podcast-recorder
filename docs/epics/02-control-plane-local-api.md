@@ -46,6 +46,8 @@ Implement only what milestone 1 needs:
 - create/edit session
 - create/edit seats
 - generate stable host/guest links
+- extract the current demo reducer/presenter state out of `app/App.tsx` into `app/lib/state.ts` or an equivalent nearby module before layering real fetch/cache work on top
+- preserve the route and link shapes already proven in epic 01: `/sessions/:sessionId`, `/sessions/:sessionId/room`, and `/join/:sessionId/:role`
 - return bootstrap data used by `web/session`
 - use TanStack Query for control-plane fetch/cache work instead of ad hoc request state sprawl
 
@@ -62,6 +64,7 @@ Implement only what milestone 1 needs:
 - host UI can create a session and seat roster
 - stable host/guest links can be generated locally
 - `web/session/` can fetch bootstrap data from `web/control/`
+- the existing control/session shell routes and join-link helpers stay valid; real data wiring replaces demo state without changing the human URL contract
 - no separate top-level control-plane backend tree is introduced
 
 ## feedback loop
@@ -69,6 +72,7 @@ Implement only what milestone 1 needs:
 Start with the fastest proof:
 
 - focused typecheck/lint on `web/control/`
+- keep `e2e/scenarios/control-shell.spec.ts` and `e2e/scenarios/session-shell.spec.ts` green so API wiring does not silently regress the shell contract
 - one narrow integration test for session + seat creation and bootstrap response
 
 Example checks:
@@ -76,6 +80,8 @@ Example checks:
 ```bash
 mise exec -- pnpm exec tsgo --noEmit -p web/control/tsconfig.json
 mise exec -- pnpm exec vitest run web/tests/<focused-control-test>.spec.ts
+mise exec -- pnpm exec playwright test e2e/scenarios/control-shell.spec.ts
+mise exec -- pnpm exec playwright test e2e/scenarios/session-shell.spec.ts
 mise exec -- pnpm exec oxlint web/control/src
 mise exec -- pnpm exec oxfmt --check web/control/src
 ```

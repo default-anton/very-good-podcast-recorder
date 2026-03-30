@@ -56,7 +56,7 @@ Bring up the minimum real stack:
 - one command path brings up the full local runtime
 - the same runtime is used for app development and E2E harness work
 - local state/logs/artifacts are inspectable
-- `local-smoke` emits text-first health status
+- `local-smoke` emits text-first health status plus the resolved control-app and session-app URLs
 - `deploy/local/` exists, but `deploy/session-server/` stays deferred until hosted bootstrap work is real
 
 ## feedback loop
@@ -73,4 +73,4 @@ If smoke validation is flaky, improve logs and health output before adding more 
 
 ## notes
 
-This is the one deliberate early `deploy/` addition because milestone 1 needs a real local stack. Do **not** use it as an excuse to add hosted bootstrap assets yet.
+This is the one deliberate early `deploy/` addition because milestone 1 needs a real local stack. Keep the control app and session app as distinct runtime targets, even if a local reverse proxy fronts them later. Do **not** use this as an excuse to add hosted bootstrap assets yet.

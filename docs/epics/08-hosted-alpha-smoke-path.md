@@ -31,7 +31,7 @@ e2e/scenarios/
 └── hosted-smoke.spec.ts
 ```
 
-Reuse the local harness abstractions where they fit, but run against the deployed control plane and one disposable hosted backend.
+Reuse the local harness abstractions where they fit, but run against the deployed control plane and one disposable hosted backend. Reuse the same text-first labels and selectors already exercised by `e2e/scenarios/control-shell.spec.ts` and `e2e/scenarios/session-shell.spec.ts` where they still apply; do not invent a second UI assertion vocabulary for the hosted path.
 
 Automate:
 
@@ -58,6 +58,7 @@ Automate:
 - the hosted backend becomes joinable within target time or reports why it did not
 - the recording path works without manual backend fiddling
 - the run summary captures hostname, backend ID, seat identity mapping, chunk counts, artifact result, and teardown result
+- the hosted smoke asserts the same critical text states (`recording`, `draining`, `reconnecting`, `failed`) as the fast shell smokes when those states are present
 - teardown removes both the backend and DNS record cleanly
 - failed runs preserve enough logs and artifacts to debug without video review
 - the smoke path proves critical operational UI remains text-first and visible without hover-only or icon-only interpretation
