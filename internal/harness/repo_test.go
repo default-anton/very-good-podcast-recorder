@@ -27,8 +27,6 @@ func TestLaterImplementationPathsRemainAbsent(t *testing.T) {
 		"internal/uploads",
 		"internal/vgpr",
 		"testdata",
-		"web/session/index.html",
-		"web/session/src",
 	} {
 		_, err := os.Stat(filepath.Join(repoRoot, relativePath))
 		if !errors.Is(err, fs.ErrNotExist) {
@@ -37,7 +35,7 @@ func TestLaterImplementationPathsRemainAbsent(t *testing.T) {
 	}
 }
 
-func TestHarnessAndControlShellSurfaceStaysPresent(t *testing.T) {
+func TestHarnessAndFrontendShellSurfaceStaysPresent(t *testing.T) {
 	repoRoot := repoRoot(t)
 
 	for _, relativePath := range []string{
@@ -60,6 +58,13 @@ func TestHarnessAndControlShellSurfaceStaysPresent(t *testing.T) {
 		"web/control/src/styles.css",
 		"web/control/tsconfig.json",
 		"web/control/vite.config.ts",
+		"web/session/index.html",
+		"web/session/src/app/App.tsx",
+		"web/session/src/app/routes/JoinPage.tsx",
+		"web/session/src/app/routes/RoomPage.tsx",
+		"web/session/src/app/lib/types.ts",
+		"web/session/src/main.tsx",
+		"web/session/src/styles.css",
 		"web/session/tsconfig.json",
 		"web/session/vite.config.ts",
 		"web/tests/tooling-harness.spec.ts",

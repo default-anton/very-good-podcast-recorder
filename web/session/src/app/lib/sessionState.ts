@@ -1,3 +1,4 @@
+import type { SessionBootstrapResponse } from "./query";
 import type {
   JoinDemoPreset,
   JoinRole,
@@ -14,7 +15,20 @@ export const DEFAULT_SESSION_ID = "amber-session-01";
 export const MIC_OPTIONS = ["Studio USB", "Boom Mic", "USB Backup"];
 export const CAMERA_OPTIONS = ["Desk Cam", "Mirrorless HDMI", "Laptop Camera"];
 
+interface SessionBootstrapSeed {
+  role: JoinRole;
+  seats: Array<{
+    displayName: string;
+    id: string;
+    label: string;
+    role: JoinRole;
+  }>;
+  sessionId: string;
+  title: string;
+}
+
 export interface SessionAppState {
+  bootstrap: SessionBootstrapSeed;
   joinPreset: JoinDemoPreset;
   roomPreset: RoomDemoPreset;
   session: SessionShell;
@@ -43,16 +57,21 @@ export type SessionAppAction =
   | { type: "toggle-local-screen-share" };
 
 export function createInitialAppState({
+  bootstrap: bootstrapResponse,
   role,
   sessionId,
 }: {
+  bootstrap?: SessionBootstrapResponse;
   role: JoinRole;
   sessionId: string;
 }): SessionAppState {
+  const bootstrap = createBootstrapSeed({ bootstrap: bootstrapResponse, role, sessionId });
+
   return {
+    bootstrap,
     joinPreset: "fresh",
     roomPreset: "steady",
-    session: buildSessionForJoinPreset(sessionId, role, "fresh", MIC_OPTIONS[0], CAMERA_OPTIONS[0]),
+    session: buildSessionForJoinPreset(bootstrap, "fresh", MIC_OPTIONS[0], CAMERA_OPTIONS[0]),
     takeoverSeatId: null,
   };
 }
@@ -78,14 +97,14 @@ export function sessionAppReducer(
       }
 
       const session = buildSessionForJoinPreset(
-        state.session.id,
-        state.session.role,
+        state.bootstrap,
         action.preset,
         state.session.previewMic,
         state.session.previewCamera,
       );
 
       return {
+        ...state,
         joinPreset: action.preset,
         roomPreset: "steady",
         session,
@@ -311,14 +330,13 @@ export function isJoinRole(value: string | undefined): value is JoinRole {
 }
 
 function buildSessionForJoinPreset(
-  sessionId: string,
-  role: JoinRole,
+  bootstrap: SessionBootstrapSeed,
   preset: JoinDemoPreset,
   previewMic = MIC_OPTIONS[0],
   previewCamera = CAMERA_OPTIONS[0],
 ): SessionShell {
-  const session = createBaseSession(sessionId, role, previewMic, previewCamera);
-  const roleSeats = session.seats.filter((seat) => seat.role === role);
+  const session = createBaseSession(bootstrap, previewMic, previewCamera);
+  const roleSeats = session.seats.filter((seat) => seat.role === session.role);
 
   if (roleSeats.length === 0) {
     throw new Error("Session shell requires at least one seat for the active role.");
@@ -461,130 +479,132 @@ function buildSessionForJoinPreset(
 }
 
 function createBaseSession(
-  sessionId: string,
-  role: JoinRole,
+  bootstrap: SessionBootstrapSeed,
   previewMic: string,
   previewCamera: string,
 ): SessionShell {
   return {
-    id: sessionId,
+    id: bootstrap.sessionId,
     joinedSeatId: null,
     ownedSeatId: null,
     previewCamera,
     previewMic,
     recordingHealth: "healthy",
     recordingPhase: "waiting",
-    role,
-    seats: role === "host" ? createHostDemoSeats() : createGuestDemoSeats(),
+    role: bootstrap.role,
+    seats: createBootstrapSeats(bootstrap),
     selectedSeatId: null,
+    title: bootstrap.title,
+  };
+}
+
+function createBootstrapSeed({
+  bootstrap,
+  role,
+  sessionId,
+}: {
+  bootstrap?: SessionBootstrapResponse;
+  role: JoinRole;
+  sessionId: string;
+}): SessionBootstrapSeed {
+  if (bootstrap === undefined) {
+    return createDemoBootstrapSeed(sessionId, role);
+  }
+
+  return {
+    role: bootstrap.session.role,
+    seats: bootstrap.seats.map((seat) => ({ ...seat })),
+    sessionId: bootstrap.session.id,
+    title: bootstrap.session.title,
+  };
+}
+
+function createDemoBootstrapSeed(sessionId: string, role: JoinRole): SessionBootstrapSeed {
+  return {
+    role,
+    seats:
+      role === "host"
+        ? [
+            createDemoBootstrapSeat("Anton Host", "seat-host-01", "Channel 01", "host"),
+            createDemoBootstrapSeat("Producer Desk", "seat-host-02", "Channel 02", "host"),
+            createDemoBootstrapSeat("Mara Chen", "seat-guest-03", "Channel 03", "guest"),
+            createDemoBootstrapSeat(
+              "Jules Narrow-Layout-Name Test",
+              "seat-guest-04",
+              "Channel 04",
+              "guest",
+            ),
+          ]
+        : [
+            createDemoBootstrapSeat("Anton Host", "seat-host-01", "Channel 01", "host"),
+            createDemoBootstrapSeat("Mara Chen", "seat-guest-02", "Channel 02", "guest"),
+            createDemoBootstrapSeat(
+              "Jules Narrow-Layout-Name Test",
+              "seat-guest-03",
+              "Channel 03",
+              "guest",
+            ),
+            createDemoBootstrapSeat("Dana Recovery", "seat-guest-04", "Channel 04", "guest"),
+          ],
+    sessionId,
     title: "Late Night Tape Check",
   };
 }
 
-function createGuestDemoSeats(): SessionSeat[] {
-  return [
-    createSeat({
-      cameraEnabled: true,
-      claimState: "active",
-      displayName: "Anton Host",
-      id: "seat-host-01",
-      joined: true,
-      label: "Channel 01",
-      micMuted: false,
-      role: "host",
-      selectedCamera: CAMERA_OPTIONS[0],
-      selectedMic: MIC_OPTIONS[0],
-    }),
-    createSeat({
-      cameraEnabled: true,
-      claimState: "unclaimed",
-      displayName: "Mara Chen",
-      id: "seat-guest-02",
-      joined: false,
-      label: "Channel 02",
-      micMuted: false,
-      role: "guest",
-      selectedCamera: CAMERA_OPTIONS[1],
-      selectedMic: MIC_OPTIONS[1],
-    }),
-    createSeat({
-      cameraEnabled: true,
-      claimState: "active",
-      displayName: "Jules Narrow-Layout-Name Test",
-      id: "seat-guest-03",
-      joined: true,
-      label: "Channel 03",
-      micMuted: false,
-      role: "guest",
-      selectedCamera: CAMERA_OPTIONS[2],
-      selectedMic: MIC_OPTIONS[2],
-    }),
-    createSeat({
-      cameraEnabled: false,
-      claimState: "disconnected",
-      displayName: "Dana Recovery",
-      id: "seat-guest-04",
-      joined: false,
-      label: "Channel 04",
-      micMuted: true,
-      role: "guest",
-      selectedCamera: CAMERA_OPTIONS[0],
-      selectedMic: MIC_OPTIONS[2],
-    }),
-  ];
+function createDemoBootstrapSeat(
+  displayName: string,
+  id: string,
+  label: string,
+  role: JoinRole,
+): SessionBootstrapSeed["seats"][number] {
+  return {
+    displayName,
+    id,
+    label,
+    role,
+  };
 }
 
-function createHostDemoSeats(): SessionSeat[] {
-  return [
-    createSeat({
-      cameraEnabled: true,
-      claimState: "unclaimed",
-      displayName: "Anton Host",
-      id: "seat-host-01",
-      joined: false,
-      label: "Channel 01",
-      micMuted: false,
-      role: "host",
-      selectedCamera: CAMERA_OPTIONS[0],
-      selectedMic: MIC_OPTIONS[0],
-    }),
-    createSeat({
-      cameraEnabled: true,
-      claimState: "active",
-      displayName: "Producer Desk",
-      id: "seat-host-02",
-      joined: true,
-      label: "Channel 02",
-      micMuted: false,
-      role: "host",
-      selectedCamera: CAMERA_OPTIONS[1],
-      selectedMic: MIC_OPTIONS[1],
-    }),
-    createSeat({
-      cameraEnabled: true,
-      claimState: "active",
-      displayName: "Mara Chen",
-      id: "seat-guest-03",
-      joined: true,
-      label: "Channel 03",
-      micMuted: false,
-      role: "guest",
-      selectedCamera: CAMERA_OPTIONS[1],
-      selectedMic: MIC_OPTIONS[1],
-    }),
-    createSeat({
-      cameraEnabled: true,
-      claimState: "disconnected",
-      displayName: "Jules Narrow-Layout-Name Test",
-      id: "seat-guest-04",
-      joined: false,
-      label: "Channel 04",
-      micMuted: false,
-      role: "guest",
-      selectedCamera: CAMERA_OPTIONS[2],
-      selectedMic: MIC_OPTIONS[2],
-    }),
-  ];
+function createBootstrapSeats(bootstrap: SessionBootstrapSeed): SessionSeat[] {
+  const roleSeats = bootstrap.seats.filter((seat) => seat.role === bootstrap.role);
+
+  if (roleSeats.length === 0) {
+    throw new Error("Session shell requires at least one seat for the active role.");
+  }
+
+  const [availableSeat, activeSeat, disconnectedSeat] = roleSeats;
+
+  return bootstrap.seats.map((seat, index) => {
+    const deviceIndex = index % MIC_OPTIONS.length;
+    const isDisconnectedSeat = seat.id === disconnectedSeat?.id;
+    const isActiveRoleSeat = seat.id === activeSeat?.id;
+    const isAvailableRoleSeat = seat.id === availableSeat.id;
+
+    let claimState: SessionSeat["claimState"] = "unclaimed";
+    let joined = false;
+
+    if (seat.role !== bootstrap.role || isActiveRoleSeat) {
+      claimState = "active";
+      joined = true;
+    } else if (isDisconnectedSeat) {
+      claimState = "disconnected";
+    } else if (isAvailableRoleSeat) {
+      claimState = "unclaimed";
+    }
+
+    return createSeat({
+      cameraEnabled: !isDisconnectedSeat,
+      claimState,
+      displayName: seat.displayName,
+      id: seat.id,
+      joined,
+      label: seat.label,
+      micMuted: isDisconnectedSeat,
+      role: seat.role,
+      selectedCamera: CAMERA_OPTIONS[deviceIndex],
+      selectedMic: MIC_OPTIONS[deviceIndex],
+    });
+  });
 }
 
 function createSeat({

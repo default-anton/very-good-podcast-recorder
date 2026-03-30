@@ -5,6 +5,7 @@ import {
   presentSession,
   sessionAppReducer,
 } from "../session/src/app/lib/sessionState";
+import type { SessionBootstrapResponse } from "../session/src/app/lib/query";
 import type { JoinRole, SessionSeat } from "../session/src/app/lib/types";
 
 describe("session shell state", () => {
@@ -54,6 +55,68 @@ describe("session shell state", () => {
     expect(mara.joined).toBe(true);
     expect(dana.pickerState).toBe("rejoin_available");
     expect(dana.joined).toBe(false);
+  });
+
+  it("hydrates the session shell from bootstrap data and keeps the fetched roster", () => {
+    const state = createInitialAppState({
+      bootstrap: {
+        runtime: {
+          baseUrl: "http://127.0.0.1:8081",
+          liveKitUrl: "ws://127.0.0.1:7880",
+          roomName: "bootstrap-shell-proof-01",
+          state: "ready",
+          turn: null,
+        },
+        seats: [
+          {
+            displayName: "Anton Host",
+            id: "seat-host-01",
+            label: "Channel 01",
+            role: "host",
+          },
+          {
+            displayName: "Mara Chen",
+            id: "seat-guest-02",
+            label: "Channel 02",
+            role: "guest",
+          },
+          {
+            displayName: "Jules Narrow-Layout-Name Test",
+            id: "seat-guest-03",
+            label: "Channel 03",
+            role: "guest",
+          },
+        ],
+        session: {
+          id: "bootstrap-shell-proof-01",
+          role: "guest",
+          status: "ready",
+          title: "Bootstrap title",
+        },
+      } satisfies SessionBootstrapResponse,
+      role: "guest",
+      sessionId: "ignored-by-bootstrap",
+    });
+    const freshSession = presentSession(state);
+    const recoverSession = presentSession(
+      sessionAppReducer(state, { preset: "recover", type: "apply-join-preset" }),
+    );
+
+    expect(freshSession.id).toBe("bootstrap-shell-proof-01");
+    expect(freshSession.title).toBe("Bootstrap title");
+    expect(
+      freshSession.seats.map(({ displayName, id, role }) => ({ displayName, id, role })),
+    ).toEqual([
+      { displayName: "Anton Host", id: "seat-host-01", role: "host" },
+      { displayName: "Mara Chen", id: "seat-guest-02", role: "guest" },
+      {
+        displayName: "Jules Narrow-Layout-Name Test",
+        id: "seat-guest-03",
+        role: "guest",
+      },
+    ]);
+    expect(seat(recoverSession.seats, "seat-guest-02").pickerState).toBe("rejoin_available");
+    expect(seat(recoverSession.seats, "seat-guest-03").pickerState).toBe("available");
   });
 
   it("keeps failure state explicit after leaving a failed recording run", () => {

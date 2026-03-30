@@ -9,7 +9,7 @@ import {
   ScreenShare,
   Users,
 } from "lucide-react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { buildJoinPath } from "../../../../shared/joinLinks";
 import { useSessionApp } from "../App";
@@ -61,18 +61,22 @@ export function RoomPage() {
     toggleLocalMic,
     toggleLocalScreenShare,
   } = useSessionApp();
+  const location = useLocation();
   const navigate = useNavigate();
   const { sessionId } = useParams();
   const currentSessionId = sessionId ?? session.id;
+  const currentSearch = location.search;
   const localSeat = session.seats.find((seat) => seat.id === session.joinedSeatId) ?? null;
 
   if (localSeat === null) {
-    return <Navigate replace to={buildJoinPath(currentSessionId, session.role)} />;
+    return (
+      <Navigate replace to={`${buildJoinPath(currentSessionId, session.role)}${currentSearch}`} />
+    );
   }
 
   function handleLeaveRoom() {
     leaveRoom();
-    navigate(buildJoinPath(currentSessionId, session.role));
+    navigate({ pathname: buildJoinPath(currentSessionId, session.role), search: currentSearch });
   }
 
   return (
@@ -80,7 +84,10 @@ export function RoomPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button
           onClick={() => {
-            navigate(buildJoinPath(currentSessionId, session.role));
+            navigate({
+              pathname: buildJoinPath(currentSessionId, session.role),
+              search: currentSearch,
+            });
           }}
           size="sm"
           variant="ghost"

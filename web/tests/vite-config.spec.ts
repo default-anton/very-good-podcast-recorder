@@ -16,4 +16,18 @@ describe("vite config", () => {
   it("serves the session app from web/session", () => {
     expect(path.resolve(sessionConfig.root ?? "")).toBe(path.resolve(testsDir, "../session"));
   });
+
+  it("keeps separate dependency caches for the control and session apps", () => {
+    expect(controlConfig.cacheDir).toBe(".vite-control");
+    expect(sessionConfig.cacheDir).toBe(".vite-session");
+  });
+
+  it("proxies session bootstrap API requests to the control app in local dev", () => {
+    expect(sessionConfig.server?.proxy).toEqual({
+      "/api": {
+        changeOrigin: true,
+        target: "http://127.0.0.1:5173",
+      },
+    });
+  });
 });

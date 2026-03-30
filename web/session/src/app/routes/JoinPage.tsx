@@ -1,6 +1,6 @@
 import { BadgeCheck, ChevronRight, KeyRound, RotateCcw, ShieldAlert } from "lucide-react";
 import type { ReactNode } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { buildJoinRoomPath } from "../../../../shared/joinLinks";
 import { DevicePreview } from "../components/DevicePreview";
@@ -24,9 +24,11 @@ export function JoinPage() {
     session,
     takeoverSeatId,
   } = useSessionApp();
+  const location = useLocation();
   const navigate = useNavigate();
   const { sessionId } = useParams();
   const currentSessionId = sessionId ?? session.id;
+  const currentSearch = location.search;
   const roomJoinLocked = session.joinedSeatId !== null;
   const localSeat = session.seats.find((seat) => seat.id === session.joinedSeatId) ?? null;
   const selectedSeat = session.seats.find((seat) => seat.id === session.selectedSeatId) ?? null;
@@ -35,7 +37,10 @@ export function JoinPage() {
 
   function handleJoinRoom() {
     joinRoom();
-    navigate(buildJoinRoomPath(currentSessionId, session.role));
+    navigate({
+      pathname: buildJoinRoomPath(currentSessionId, session.role),
+      search: currentSearch,
+    });
   }
 
   return (
@@ -94,7 +99,7 @@ export function JoinPage() {
                   <p className="section-label">Join flow proof</p>
                   <h3 className="mt-3 text-xl font-semibold text-text">Exercise the shell</h3>
                 </div>
-                <Pill tone="info">no backend</Pill>
+                <Pill tone="info">local bootstrap</Pill>
               </div>
             </CardHeader>
             <CardBody className="space-y-3">
@@ -154,7 +159,10 @@ export function JoinPage() {
                 <div className="flex flex-wrap gap-2">
                   <Button
                     onClick={() => {
-                      navigate(buildJoinRoomPath(currentSessionId, session.role));
+                      navigate({
+                        pathname: buildJoinRoomPath(currentSessionId, session.role),
+                        search: currentSearch,
+                      });
                     }}
                     variant="primary"
                   >

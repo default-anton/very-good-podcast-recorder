@@ -3,14 +3,17 @@ import {
   useContext,
   useMemo,
   useReducer,
+  useRef,
   type Dispatch,
   type ReactNode,
 } from "react";
-import { Navigate, Route, Routes, useParams } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 
-import { buildDemoJoinKey, buildJoinHref } from "../../../shared/joinLinks";
+import { buildJoinHref } from "../../../shared/joinLinks";
 
 import { Card, CardBody, CardHeader } from "./components/ui";
+import { useQuery } from "@tanstack/react-query";
+
 import {
   CAMERA_OPTIONS,
   createInitialAppState,
@@ -22,6 +25,11 @@ import {
   type SessionAppAction,
   type SessionAppState,
 } from "./lib/sessionState";
+import {
+  sessionBootstrapQueryOptions,
+  sessionRoleLinksQueryOptions,
+  type SessionBootstrapResponse,
+} from "./lib/query";
 import type { JoinDemoPreset, JoinRole, RoomDemoPreset, SessionShell } from "./lib/types";
 import { JoinPage } from "./routes/JoinPage";
 import { RoomPage } from "./routes/RoomPage";
@@ -59,19 +67,7 @@ const SessionAppContext = createContext<SessionAppContextValue | null>(null);
 export function App() {
   return (
     <Routes>
-      <Route
-        element={
-          <Navigate
-            replace
-            to={buildJoinHref(
-              DEFAULT_SESSION_ID,
-              "guest",
-              buildDemoJoinKey(DEFAULT_SESSION_ID, "guest"),
-            )}
-          />
-        }
-        path="/"
-      />
+      <Route element={<DefaultGuestJoinRedirect />} path="/" />
       <Route element={<SessionScopedApp />} path="/join/:sessionId/:role/*" />
     </Routes>
   );
@@ -87,45 +83,115 @@ export function useSessionApp() {
   return value;
 }
 
+function DefaultGuestJoinRedirect() {
+  const roleLinksQuery = useQuery(sessionRoleLinksQueryOptions(DEFAULT_SESSION_ID));
+
+  if (roleLinksQuery.isPending) {
+    return (
+      <SessionBootstrapStateCard
+        body="Provisioning the default local guest link from the control-plane session contract."
+        title="Preparing local role link"
+        tone="info"
+      />
+    );
+  }
+
+  if (roleLinksQuery.isError) {
+    return (
+      <SessionBootstrapStateCard
+        body="The local control plane did not return the default guest link. Start from the control shell or try again."
+        detail={roleLinksQuery.error.message}
+        title="Default guest link is unavailable"
+      />
+    );
+  }
+
+  return (
+    <Navigate replace to={toSessionAppJoinHref(DEFAULT_SESSION_ID, roleLinksQuery.data.guest)} />
+  );
+}
+
 function SessionScopedApp() {
+  const location = useLocation();
   const { role, sessionId } = useParams();
   const scopedSessionId = sessionId ?? DEFAULT_SESSION_ID;
+  const joinKey = useRememberedJoinKey(location.search);
 
   if (!isJoinRole(role)) {
     return (
-      <AppShell>
-        <Card className="mx-auto max-w-2xl">
-          <CardHeader>
-            <p className="section-label">Role link validation</p>
-            <h2 className="mt-3 text-xl font-semibold text-text">This role link is not valid</h2>
-          </CardHeader>
-          <CardBody className="space-y-3">
-            <p className="text-sm text-text">
-              The session shell only accepts <span className="font-mono">host</span> and{" "}
-              <span className="font-mono">guest</span> role links.
-            </p>
-            <p className="fine-print">
-              Requested role: <span className="font-mono text-text">{role ?? "missing"}</span>
-            </p>
-          </CardBody>
-        </Card>
-      </AppShell>
+      <SessionBootstrapStateCard
+        body="The session shell only accepts host and guest role links."
+        detail={`Requested role: ${role ?? "missing"}`}
+        title="This role link is not valid"
+      />
+    );
+  }
+
+  if (joinKey === null) {
+    return (
+      <SessionBootstrapStateCard
+        body="This join URL is missing its role-link key. Reopen the latest host-generated link and try again."
+        title="This role link is incomplete"
+      />
+    );
+  }
+
+  return <ValidatedSessionScopedApp joinKey={joinKey} role={role} sessionId={scopedSessionId} />;
+}
+
+function ValidatedSessionScopedApp({
+  joinKey,
+  role,
+  sessionId,
+}: {
+  joinKey: string;
+  role: JoinRole;
+  sessionId: string;
+}) {
+  const bootstrapQuery = useQuery(sessionBootstrapQueryOptions(sessionId, role, joinKey));
+
+  if (bootstrapQuery.isPending) {
+    return (
+      <SessionBootstrapStateCard
+        body="Checking this role link against the local control-plane bootstrap endpoint."
+        title="Validating role link"
+        tone="info"
+      />
+    );
+  }
+
+  if (bootstrapQuery.isError) {
+    return (
+      <SessionBootstrapStateCard
+        body="The local control plane rejected this role link. Reopen the latest host-generated URL and try again."
+        detail={bootstrapQuery.error.message}
+        title="This role link is not valid"
+      />
     );
   }
 
   return (
     <SessionScopedAppInner
-      key={`${role}:${scopedSessionId}`}
+      bootstrap={bootstrapQuery.data}
+      key={`${role}:${sessionId}:${joinKey}`}
       role={role}
-      sessionId={scopedSessionId}
+      sessionId={sessionId}
     />
   );
 }
 
-function SessionScopedAppInner({ role, sessionId }: { role: JoinRole; sessionId: string }) {
+function SessionScopedAppInner({
+  bootstrap,
+  role,
+  sessionId,
+}: {
+  bootstrap: SessionBootstrapResponse;
+  role: JoinRole;
+  sessionId: string;
+}) {
   const [state, dispatch] = useReducer(
     sessionAppReducer,
-    { role, sessionId },
+    { bootstrap, role, sessionId },
     createInitialAppState,
   );
   const session = useMemo(() => presentSession(state), [state]);
@@ -141,6 +207,58 @@ function SessionScopedAppInner({ role, sessionId }: { role: JoinRole; sessionId:
       </AppShell>
     </SessionAppContext.Provider>
   );
+}
+
+function SessionBootstrapStateCard({
+  body,
+  detail,
+  title,
+  tone = "danger",
+}: {
+  body: string;
+  detail?: string;
+  title: string;
+  tone?: "danger" | "info";
+}) {
+  return (
+    <AppShell>
+      <Card className="mx-auto max-w-2xl">
+        <CardHeader>
+          <p className="section-label">Role link validation</p>
+          <h2 className="mt-3 text-xl font-semibold text-text">{title}</h2>
+        </CardHeader>
+        <CardBody className="space-y-3">
+          <p className="text-sm text-text">{body}</p>
+          {detail === undefined ? null : (
+            <p className={tone === "danger" ? "fine-print text-danger" : "fine-print text-text"}>
+              {detail}
+            </p>
+          )}
+        </CardBody>
+      </Card>
+    </AppShell>
+  );
+}
+
+function toSessionAppJoinHref(sessionId: string, roleLink: string) {
+  const joinKey = new URL(roleLink).searchParams.get("k");
+
+  if (joinKey === null || joinKey.length === 0) {
+    throw new Error("Local role link is missing its join key.");
+  }
+
+  return buildJoinHref(sessionId, "guest", joinKey);
+}
+
+function useRememberedJoinKey(search: string) {
+  const rememberedJoinKey = useRef<string | null>(null);
+  const joinKey = new URLSearchParams(search).get("k");
+
+  if (joinKey !== null && joinKey.length > 0) {
+    rememberedJoinKey.current = joinKey;
+  }
+
+  return rememberedJoinKey.current;
 }
 
 function useSessionAppContextValue(
@@ -233,7 +351,7 @@ function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div className="rounded-md border border-line bg-panel-raised px-4 py-3">
             <p className="section-label">Shell status</p>
-            <p className="mt-2 font-mono text-sm text-text">session / demo-local / no backend</p>
+            <p className="mt-2 font-mono text-sm text-text">session / bootstrap / local api</p>
           </div>
         </header>
 

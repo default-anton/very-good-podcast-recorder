@@ -8,6 +8,8 @@ pnpm-lock.yaml.*
 playwright-report/
 test-results/
 coverage/
+web/control/.vite-control/
+web/session/.vite-session/
 *.pem
 *.key
 *.p12
