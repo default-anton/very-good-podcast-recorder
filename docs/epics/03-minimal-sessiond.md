@@ -90,3 +90,7 @@ If signals are weak, add one deterministic integration-style test around claim +
 Do **not** introduce `pkg/`.
 Do **not** add `cmd/controlplane/`.
 This slice should stay tightly scoped to the disposable session server.
+
+Current claims/state work seeds fresh `sessiond` SQLite state from config bootstrap data; the `uploads + manifest persistence` slice should replace that with the real control-plane/session bootstrap sync path.
+
+The `uploads + manifest persistence` slice should build on the landed `sessiond` SQLite schema and artifact paths instead of introducing parallel persistence state.
