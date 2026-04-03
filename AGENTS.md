@@ -45,3 +45,5 @@ Before handoff, the last step is to update the relevant docs and status markers 
 - Prefer boring, observable systems. Critical paths need logs, reproducible tests, or other fast feedback loops.
 - Treat reality-like local end-to-end coverage as part of the product, not test polish. For join/session/recording/upload/reconnect work, prefer a dev-machine harness that runs a real multi-user session against the real local stack over mocks or remote-only manual testing.
 - Changes to session-critical flows are not done with unit tests alone; maintain a scriptable local multi-participant smoke path and extend it for failures that matter (disconnects, packet loss, stalled uploads, resume/retry).
+- Keep files reviewable: target UI/page components at <=300 LOC, route/controller/state/test files at <=400 LOC, and treat >500 LOC as a required split or explicit exception.
+- Split by product seam, not helper sprawl: route files by contract family, state by domain/demo/orchestration seam, and tests by contract or scenario. Do not add `utils`, `common`, or shared-package dumping grounds just to move code around.
