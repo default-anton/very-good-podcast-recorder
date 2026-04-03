@@ -1,5 +1,16 @@
-import type { ControlSessionResponse, SessionRuntimeDescriptor } from "../app/lib/api";
-import { createInitialSession, type SessionJoinKeys, withSessionLinks } from "../app/lib/state";
+import type {
+  ControlSessionResponse,
+  SessionRuntimeDescriptor,
+  UpdateControlSeatInput,
+  UpdateControlSessionInput,
+} from "../app/lib/api";
+import { createGuestSeat, createInitialSession } from "../app/lib/session-fixtures";
+import { type SessionJoinKeys, withSessionLinks } from "../app/lib/session-links";
+import {
+  normalizeControlSession,
+  patchSessionSeat,
+  removeSessionSeat,
+} from "../app/lib/session-model";
 import type { ControlSession } from "../app/lib/types";
 
 import { createLocalJoinKeys, type JoinLinkRole, hasValidLocalJoinKey } from "./join-links";
@@ -25,8 +36,79 @@ class LocalSessionStore {
     return created;
   }
 
+  createSeat(sessionId: string) {
+    const record = this.get(sessionId);
+
+    if (record === null) {
+      return null;
+    }
+
+    if (record.session.seats.length >= 8) {
+      return record;
+    }
+
+    const seatNumber = record.session.nextSeatNumber;
+
+    record.session = normalizeControlSession({
+      ...record.session,
+      nextSeatNumber: seatNumber + 1,
+      seats: [...record.session.seats, createGuestSeat(seatNumber)],
+    });
+
+    return record;
+  }
+
+  deleteSeat(sessionId: string, seatId: string) {
+    const record = this.get(sessionId);
+
+    if (record === null) {
+      return null;
+    }
+
+    const seat = record.session.seats.find((currentSeat) => currentSeat.id === seatId);
+
+    if (seat === undefined) {
+      return null;
+    }
+
+    record.session = normalizeControlSession(removeSessionSeat(record.session, seatId));
+    return record;
+  }
+
   get(sessionId: string) {
     return this.#sessions.get(sessionId) ?? null;
+  }
+
+  updateSeat(sessionId: string, seatId: string, patch: UpdateControlSeatInput) {
+    const record = this.get(sessionId);
+
+    if (record === null) {
+      return null;
+    }
+
+    const seat = record.session.seats.find((currentSeat) => currentSeat.id === seatId);
+
+    if (seat === undefined) {
+      return null;
+    }
+
+    record.session = normalizeControlSession(patchSessionSeat(record.session, seatId, patch));
+    return record;
+  }
+
+  updateSession(sessionId: string, patch: UpdateControlSessionInput) {
+    const record = this.get(sessionId);
+
+    if (record === null) {
+      return null;
+    }
+
+    record.session = normalizeControlSession({
+      ...record.session,
+      ...patch,
+    });
+
+    return record;
   }
 }
 
@@ -38,6 +120,41 @@ export function getStoredSessionRecord(sessionId: string) {
 
 export function ensureStoredSessionRecord(sessionId: string) {
   return localSessionStore.create(sessionId);
+}
+
+export function createStoredSeatResponse(sessionId: string, origin: string) {
+  const record = localSessionStore.createSeat(sessionId);
+
+  if (record === null) {
+    return null;
+  }
+
+  return toControlSessionResponse(record, origin);
+}
+
+export function updateStoredSeatResponse(
+  sessionId: string,
+  seatId: string,
+  origin: string,
+  patch: UpdateControlSeatInput,
+) {
+  const record = localSessionStore.updateSeat(sessionId, seatId, patch);
+
+  if (record === null) {
+    return null;
+  }
+
+  return toControlSessionResponse(record, origin);
+}
+
+export function deleteStoredSeatResponse(sessionId: string, seatId: string, origin: string) {
+  const record = localSessionStore.deleteSeat(sessionId, seatId);
+
+  if (record === null) {
+    return null;
+  }
+
+  return toControlSessionResponse(record, origin);
 }
 
 export function createControlSessionResponse(
@@ -58,6 +175,20 @@ export function ensureControlSessionResponse(
   origin: string,
 ): ControlSessionResponse {
   return toControlSessionResponse(ensureStoredSessionRecord(sessionId), origin);
+}
+
+export function updateControlSessionResponse(
+  sessionId: string,
+  origin: string,
+  patch: UpdateControlSessionInput,
+) {
+  const record = localSessionStore.updateSession(sessionId, patch);
+
+  if (record === null) {
+    return null;
+  }
+
+  return toControlSessionResponse(record, origin);
 }
 
 export function hasStoredJoinKey(sessionId: string, role: JoinLinkRole, joinKey: string | null) {
@@ -84,7 +215,7 @@ function createStoredSessionRecord(sessionId: string): StoredSessionRecord {
   return {
     joinKeys: createLocalJoinKeys(),
     runtime: createLocalRuntimeDescriptor(sessionId),
-    session: createInitialSession(sessionId),
+    session: normalizeControlSession(createInitialSession(sessionId)),
   };
 }
 

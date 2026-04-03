@@ -73,6 +73,50 @@ for (const viewport of [
   });
 }
 
+test("ended role links stay invalid in the session app", async ({ page }) => {
+  const sessionId = "ended-link-proof-01";
+  const sessionPath = `http://127.0.0.1:5173/api/v1/sessions/${encodeURIComponent(sessionId)}`;
+  const provisionedSession = await page.request.fetch(sessionPath, {
+    headers: {
+      Accept: "application/json",
+    },
+    method: "PUT",
+  });
+  const provisionedBody = (await provisionedSession.json()) as {
+    session: {
+      links: {
+        guest: string;
+      };
+    };
+  };
+
+  const activatedSession = await page.request.fetch(sessionPath, {
+    data: { status: "active" },
+    method: "PATCH",
+  });
+  const failedSession = await page.request.fetch(sessionPath, {
+    data: { recordingHealth: "failed", recordingPhase: "failed" },
+    method: "PATCH",
+  });
+  const endedSession = await page.request.fetch(sessionPath, {
+    data: { status: "ended" },
+    method: "PATCH",
+  });
+
+  expect(activatedSession.ok()).toBe(true);
+  expect(failedSession.ok()).toBe(true);
+  expect(endedSession.ok()).toBe(true);
+
+  await page.goto(provisionedBody.session.links.guest);
+
+  await expect(page.getByRole("heading", { name: "This role link is not valid" })).toBeVisible();
+  await expect(
+    page.getByText(
+      "Local session ended-link-proof-01 is ended. Only ready or active sessions can be bootstrapped.",
+    ),
+  ).toBeVisible();
+});
+
 test("join flow stays read-only while this browser is already in the room", async ({ page }) => {
   await openGuestRoom(page, "room-lock-proof-01");
 

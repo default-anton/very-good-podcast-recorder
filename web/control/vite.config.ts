@@ -1,3 +1,4 @@
+import type { IncomingMessage } from "node:http";
 import { fileURLToPath } from "node:url";
 
 import tailwindcss from "@tailwindcss/vite";
@@ -32,6 +33,7 @@ function controlApiPlugin(): Plugin {
           const request = new Request(
             new URL(req.url, `http://${req.headers.host ?? "127.0.0.1:5173"}`),
             {
+              body: await readRequestBody(req),
               headers: createHeaders(req.headers),
               method: req.method,
             },
@@ -78,4 +80,22 @@ function createHeaders(source: Record<string, string | string[] | undefined>) {
   }
 
   return headers;
+}
+
+async function readRequestBody(request: IncomingMessage) {
+  if (request.method === undefined || request.method === "GET" || request.method === "HEAD") {
+    return undefined;
+  }
+
+  const chunks: Buffer[] = [];
+
+  for await (const chunk of request) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+
+  if (chunks.length === 0) {
+    return undefined;
+  }
+
+  return Buffer.concat(chunks);
 }
