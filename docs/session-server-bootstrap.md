@@ -143,6 +143,27 @@ Use:
 Do **not** add Redis to the disposable server until we actually need multi-node LiveKit or a Redis-dependent side service.
 Do **not** use LiveKit egress as the primary recording path.
 
+## sessiond process health [done]
+
+The first `sessiond` slice exposes 2 text-first JSON endpoints:
+
+- `GET /healthz` returns `200` when the process is alive
+- `GET /readyz` returns `200` only when the configured artifact root and SQLite directory exist locally; otherwise it returns `503`
+
+On startup, `sessiond` prepares the artifact root and SQLite parent directory with service-private permissions before serving requests.
+
+Both endpoints report:
+
+- `status`
+- `session_id`
+- `release_version`
+- `listen_addr`
+- `artifact_root`
+- `sqlite_path`
+- a `checks` object for the current local runtime-path signals
+
+This is the service-local health contract only. Hosted readiness will extend `checks` until it satisfies the full server contract below.
+
 ## readiness contract
 
 `session_servers.state = 'ready'` means all of these are true:

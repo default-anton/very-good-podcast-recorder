@@ -3,7 +3,7 @@
 ## Recommended PR slices
 
 split into 2–3 PRs:
-- service skeleton + config + health
+- [done] service skeleton + config + health
 - claims/state basics
 - uploads + manifest persistence
 
