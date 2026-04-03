@@ -9,7 +9,7 @@ for (const viewport of [
 ]) {
   test(`control shell keeps core actions visible at ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ height: viewport.height, width: viewport.width });
-    await openRoomShell(page, "layout-proof-01");
+    await openRoomShell(page, `layout-proof-01-${viewport.width}`);
 
     await expect(page.getByText("Room status")).toBeVisible();
     await expect(page.getByRole("button", { name: "Start recording" })).toBeVisible();
@@ -21,11 +21,85 @@ for (const viewport of [
   });
 }
 
+test("rapid host mic toggles stay ordered against the latest session snapshot", async ({
+  page,
+}) => {
+  const sessionId = "rapid-mic-proof-01";
+  const sessionPath = `http://127.0.0.1:5173/api/v1/sessions/${encodeURIComponent(sessionId)}`;
+
+  await openRoomShell(page, sessionId);
+  await page.evaluate(() => {
+    const muteButton = Array.from(document.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Mute mic"),
+    );
+
+    if (!(muteButton instanceof HTMLButtonElement)) {
+      throw new Error("Mute mic button missing from control room shell.");
+    }
+
+    muteButton.click();
+    muteButton.click();
+  });
+
+  const unmuteButton = page.getByRole("button", { name: "Unmute mic" });
+
+  if ((await unmuteButton.count()) > 0) {
+    await unmuteButton.click();
+  } else {
+    await page.getByRole("button", { name: "Mute mic" }).click();
+  }
+
+  await expect
+    .poll(async () => {
+      const response = await page.request.fetch(sessionPath);
+      const body = (await response.json()) as {
+        session: {
+          seats: Array<{
+            id: string;
+            micMuted: boolean;
+          }>;
+        };
+      };
+
+      return body.session.seats.find((seat) => seat.id === "seat-host-01")?.micMuted ?? null;
+    })
+    .toBe(true);
+});
+
 test("setup shell keeps the operator seat pinned", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.locator("#seat-host-01-role")).toBeDisabled();
   await expect(page.getByRole("button", { name: "Remove Anton Host" })).toBeDisabled();
+});
+
+test("setup fields roll back to canonical session state after a rejected edit", async ({
+  page,
+}) => {
+  const sessionId = "setup-rollback-proof-01";
+  const sessionPath = `http://127.0.0.1:5173/api/v1/sessions/${encodeURIComponent(sessionId)}`;
+
+  await page.goto(`/sessions/${sessionId}`);
+  await expect(roleLinkUrl(page, "host")).toContainText(
+    new RegExp(`^http://127\\.0\\.0\\.1:5174/join/${sessionId}/host\\?k=local-host-`),
+  );
+
+  const activatedSession = await page.request.fetch(sessionPath, {
+    data: { status: "active" },
+    method: "PATCH",
+  });
+
+  expect(activatedSession.ok()).toBe(true);
+
+  const sessionTitle = page.getByLabel("Session title");
+
+  await sessionTitle.fill("This title should roll back");
+  await page.getByRole("button", { name: "Draft" }).focus();
+
+  await expect(sessionTitle).toHaveValue("Late Night Tape Check");
+  await expect(sessionTitle).toBeDisabled();
+  await expect(page.getByTestId("summary-row-host-run")).toContainText("active");
+  await expect(page.getByText("This hosted run is already active or ended.")).toBeVisible();
 });
 
 test("copy link reports failure when clipboard access is unavailable", async ({ page }) => {

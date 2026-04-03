@@ -2,7 +2,7 @@ import { ClipboardCheck, ExternalLink, Link2, MonitorCog } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { useControlApp } from "../App";
+import { useControlApp } from "../ControlAppProvider";
 import { createControlRoomPath } from "../lib/api";
 import { SessionForm } from "../components/SessionForm";
 import { Card, CardBody, CardHeader, SectionHeading } from "../components/ui";
@@ -69,12 +69,12 @@ export function SessionSetupPage() {
     });
   }
 
-  function handleOpenRoom() {
+  async function handleOpenRoom() {
     if (session.status !== "active") {
-      activateSession();
+      await activateSession();
     }
 
-    joinOperatorRoom();
+    await joinOperatorRoom();
     navigate(createControlRoomPath(currentSessionId));
   }
 
@@ -91,15 +91,27 @@ export function SessionSetupPage() {
           disabled={editingLocked}
           links={roleLinks}
           linksStatus={roleLinksStatus}
-          onAddSeat={addSeat}
+          onAddSeat={() => {
+            void addSeat();
+          }}
           onCopyLink={(role) => {
             void handleCopyLink(role);
           }}
-          onOpenRoom={handleOpenRoom}
-          onRemoveSeat={removeSeat}
-          onStatusChange={setSessionStatus}
-          onTitleChange={setTitle}
-          onUpdateSeat={updateSeat}
+          onOpenRoom={() => {
+            void handleOpenRoom();
+          }}
+          onRemoveSeat={(seatId) => {
+            void removeSeat(seatId);
+          }}
+          onStatusChange={(status) => {
+            void setSessionStatus(status);
+          }}
+          onTitleChange={(title) => {
+            void setTitle(title);
+          }}
+          onUpdateSeat={(seatId, patch) => {
+            void updateSeat(seatId, patch);
+          }}
           operatorSeatId={operatorSeatId}
           session={session}
         />

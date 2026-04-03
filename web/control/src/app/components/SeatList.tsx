@@ -1,4 +1,5 @@
 import { Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import type { Seat, SeatRole } from "../lib/types";
 import { Button, Input, Pill, Select, cn } from "./ui";
@@ -50,83 +51,18 @@ export function SeatList(props: SeatListProps) {
 
     return (
       <div className="space-y-3">
-        {props.seats.map((seat) => {
-          const isLockedSeat = seat.id === props.lockedSeatId;
-          const onlyHost = seat.role === "host" && hostCount === 1;
-          const disableRemove =
-            props.disabled || props.seats.length === 1 || onlyHost || isLockedSeat;
-
-          return (
-            <div
-              className="raised-surface grid gap-3 p-4 md:grid-cols-[minmax(0,1.8fr)_160px_auto] md:items-end"
-              key={seat.id}
-            >
-              <div>
-                <p className="section-label">{seat.label}</p>
-                <div className="mt-2">
-                  <label className="sr-only" htmlFor={`${seat.id}-name`}>
-                    Seat display name
-                  </label>
-                  <Input
-                    disabled={props.disabled}
-                    id={`${seat.id}-name`}
-                    maxLength={48}
-                    onChange={(event) => {
-                      props.onUpdateSeat(seat.id, { displayName: event.target.value });
-                    }}
-                    placeholder="Display name"
-                    value={seat.displayName}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <p className="section-label">Role</p>
-                <div className="mt-2">
-                  <label className="sr-only" htmlFor={`${seat.id}-role`}>
-                    Seat role
-                  </label>
-                  <Select
-                    disabled={props.disabled || onlyHost || isLockedSeat}
-                    id={`${seat.id}-role`}
-                    onChange={(event) => {
-                      props.onUpdateSeat(seat.id, {
-                        role: event.target.value as SeatRole,
-                      });
-                    }}
-                    value={seat.role}
-                  >
-                    <option value="host">Host</option>
-                    <option value="guest">Guest</option>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex gap-2 md:justify-end">
-                <Button
-                  aria-label={`Remove ${seat.displayName || seat.label}`}
-                  disabled={disableRemove}
-                  onClick={() => {
-                    props.onRemoveSeat(seat.id);
-                  }}
-                  size="sm"
-                  variant="ghost"
-                >
-                  <Trash2 className="size-4" />
-                  Remove
-                </Button>
-              </div>
-
-              {onlyHost || isLockedSeat ? (
-                <p className="fine-print md:col-span-3">
-                  {isLockedSeat
-                    ? "This seat is pinned to the local operator in the demo shell, so its role and presence stay fixed."
-                    : "Keep one host seat in the roster. Move host duties first, then remove this channel."}
-                </p>
-              ) : null}
-            </div>
-          );
-        })}
+        {props.seats.map((seat) => (
+          <SetupSeatRow
+            disabled={props.disabled}
+            hostCount={hostCount}
+            key={seat.id}
+            lockedSeatId={props.lockedSeatId}
+            onRemoveSeat={props.onRemoveSeat}
+            onUpdateSeat={props.onUpdateSeat}
+            seat={seat}
+            seatCount={props.seats.length}
+          />
+        ))}
 
         <Button
           disabled={props.disabled || !canAddSeat}
@@ -186,6 +122,106 @@ export function SeatList(props: SeatListProps) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function SetupSeatRow({
+  disabled,
+  hostCount,
+  lockedSeatId,
+  onRemoveSeat,
+  onUpdateSeat,
+  seat,
+  seatCount,
+}: {
+  disabled: boolean;
+  hostCount: number;
+  lockedSeatId: string;
+  onRemoveSeat: (seatId: string) => void;
+  onUpdateSeat: (seatId: string, patch: Partial<Pick<Seat, "displayName" | "role">>) => void;
+  seat: Seat;
+  seatCount: number;
+}) {
+  const [displayNameDraft, setDisplayNameDraft] = useState(seat.displayName);
+  const isLockedSeat = seat.id === lockedSeatId;
+  const onlyHost = seat.role === "host" && hostCount === 1;
+  const disableRemove = disabled || seatCount === 1 || onlyHost || isLockedSeat;
+
+  useEffect(() => {
+    setDisplayNameDraft(seat.displayName);
+  }, [seat.displayName, seat.id]);
+
+  return (
+    <div className="raised-surface grid gap-3 p-4 md:grid-cols-[minmax(0,1.8fr)_160px_auto] md:items-end">
+      <div>
+        <p className="section-label">{seat.label}</p>
+        <div className="mt-2">
+          <label className="sr-only" htmlFor={`${seat.id}-name`}>
+            Seat display name
+          </label>
+          <Input
+            disabled={disabled}
+            id={`${seat.id}-name`}
+            maxLength={48}
+            onBlur={() => {
+              if (displayNameDraft !== seat.displayName) {
+                onUpdateSeat(seat.id, { displayName: displayNameDraft });
+              }
+            }}
+            onChange={(event) => {
+              setDisplayNameDraft(event.target.value);
+            }}
+            placeholder="Display name"
+            value={displayNameDraft}
+          />
+        </div>
+      </div>
+
+      <div>
+        <p className="section-label">Role</p>
+        <div className="mt-2">
+          <label className="sr-only" htmlFor={`${seat.id}-role`}>
+            Seat role
+          </label>
+          <Select
+            disabled={disabled || onlyHost || isLockedSeat}
+            id={`${seat.id}-role`}
+            onChange={(event) => {
+              onUpdateSeat(seat.id, {
+                role: event.target.value as SeatRole,
+              });
+            }}
+            value={seat.role}
+          >
+            <option value="host">Host</option>
+            <option value="guest">Guest</option>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex gap-2 md:justify-end">
+        <Button
+          aria-label={`Remove ${seat.displayName || seat.label}`}
+          disabled={disableRemove}
+          onClick={() => {
+            onRemoveSeat(seat.id);
+          }}
+          size="sm"
+          variant="ghost"
+        >
+          <Trash2 className="size-4" />
+          Remove
+        </Button>
+      </div>
+
+      {onlyHost || isLockedSeat ? (
+        <p className="fine-print md:col-span-3">
+          {isLockedSeat
+            ? "This seat is pinned to the local operator in the demo shell, so its role and presence stay fixed."
+            : "Keep one host seat in the roster. Move host duties first, then remove this channel."}
+        </p>
+      ) : null}
+    </div>
   );
 }
 

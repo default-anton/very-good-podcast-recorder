@@ -4,8 +4,8 @@
 
 split into 2–3 PRs:
 - [done] local API/router/bootstrap contract
-- session + seat CRUD wiring
-- guest/bootstrap fetch integration
+- [done] session + seat CRUD wiring
+- [done] guest/bootstrap fetch integration
 
 Related docs:
 
@@ -94,6 +94,7 @@ The local bootstrap contract is intentionally strict:
 - `GET /api/v1/sessions/:sessionId` and bootstrap reads return `404` until that session was provisioned explicitly
 - local host/guest join keys are opaque bearer secrets, not deterministic demo strings, and the returned role links target the local session-app root
 - bootstrap CORS is limited to the approved local session-app origins; session-summary responses stay same-origin only
+- a local session can only enter `ended` after recording reaches a terminal phase (`stopped` or `failed`); the local API should reject impossible `ended + waiting|recording|draining` combinations
 - the control shell reads role links from the local API contract, and the session shell provisions its default local guest link before redirecting into `/join/:sessionId/:role`
 
 ## notes

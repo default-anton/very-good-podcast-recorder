@@ -1,4 +1,5 @@
 import { Link2, RadioTower, Save } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import type { ControlSession, Seat, SessionLinks } from "../lib/types";
 import { SeatList } from "./SeatList";
@@ -31,9 +32,14 @@ export function SessionForm({
   operatorSeatId: string;
   session: ControlSession;
 }) {
+  const [titleDraft, setTitleDraft] = useState(session.title);
   const guestCount = session.seats.filter((seat) => seat.role === "guest").length;
   const hostCount = session.seats.filter((seat) => seat.role === "host").length;
   const readyToOpen = session.status === "ready" || session.status === "active";
+
+  useEffect(() => {
+    setTitleDraft(session.title);
+  }, [session.id, session.title]);
 
   return (
     <div className="space-y-6">
@@ -68,10 +74,15 @@ export function SessionForm({
               disabled={disabled}
               id="session-title"
               maxLength={80}
-              onChange={(event) => {
-                onTitleChange(event.target.value);
+              onBlur={() => {
+                if (titleDraft !== session.title) {
+                  onTitleChange(titleDraft);
+                }
               }}
-              value={session.title}
+              onChange={(event) => {
+                setTitleDraft(event.target.value);
+              }}
+              value={titleDraft}
             />
           </div>
 

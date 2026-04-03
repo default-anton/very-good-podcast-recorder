@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { useControlApp } from "../App";
+import { useControlApp } from "../ControlAppProvider";
 import { RecordingStatusBar } from "../components/RecordingStatusBar";
 import { SeatList } from "../components/SeatList";
 import { Button, Card, CardBody, CardHeader, Pill, SectionHeading, Select } from "../components/ui";
@@ -48,8 +48,8 @@ export function SessionRoomPage() {
     throw new Error("Control room shell requires at least one host seat.");
   }
 
-  function handleLeaveSession() {
-    leaveOperatorRoom();
+  async function handleLeaveSession() {
+    await leaveOperatorRoom();
     navigate(createControlSessionPath(currentSessionId));
   }
 
@@ -76,11 +76,21 @@ export function SessionRoomPage() {
       />
 
       <RecordingStatusBar
-        onActivateSession={activateSession}
-        onEndHostedRun={endHostedRun}
-        onFinishDrain={finishDrain}
-        onStartRecording={startRecording}
-        onStopRecording={stopRecording}
+        onActivateSession={() => {
+          void activateSession();
+        }}
+        onEndHostedRun={() => {
+          void endHostedRun();
+        }}
+        onFinishDrain={() => {
+          void finishDrain();
+        }}
+        onStartRecording={() => {
+          void startRecording();
+        }}
+        onStopRecording={() => {
+          void stopRecording();
+        }}
         recordingHealth={session.recordingHealth}
         recordingPhase={session.recordingPhase}
         sessionStatus={session.status}
@@ -132,7 +142,7 @@ export function SessionRoomPage() {
                   <Select
                     id="host-mic-select"
                     onChange={(event) => {
-                      selectHostMic(event.target.value);
+                      void selectHostMic(event.target.value);
                     }}
                     value={operatorSeat.selectedMic}
                   >
@@ -150,7 +160,7 @@ export function SessionRoomPage() {
                   <Select
                     id="host-camera-select"
                     onChange={(event) => {
-                      selectHostCamera(event.target.value);
+                      void selectHostCamera(event.target.value);
                     }}
                     value={operatorSeat.selectedCamera}
                   >
@@ -165,7 +175,9 @@ export function SessionRoomPage() {
 
               <div className="flex flex-wrap gap-2">
                 <Button
-                  onClick={toggleHostMic}
+                  onClick={() => {
+                    void toggleHostMic();
+                  }}
                   variant={operatorSeat.micMuted ? "danger" : "secondary"}
                 >
                   {operatorSeat.micMuted ? (
@@ -176,7 +188,9 @@ export function SessionRoomPage() {
                   {operatorSeat.micMuted ? "Unmute mic" : "Mute mic"}
                 </Button>
                 <Button
-                  onClick={toggleHostCamera}
+                  onClick={() => {
+                    void toggleHostCamera();
+                  }}
                   variant={operatorSeat.cameraEnabled ? "secondary" : "danger"}
                 >
                   {operatorSeat.cameraEnabled ? (
@@ -186,7 +200,12 @@ export function SessionRoomPage() {
                   )}
                   {operatorSeat.cameraEnabled ? "Turn camera off" : "Turn camera on"}
                 </Button>
-                <Button onClick={toggleHostScreenShare} variant="secondary">
+                <Button
+                  onClick={() => {
+                    void toggleHostScreenShare();
+                  }}
+                  variant="secondary"
+                >
                   {operatorSeat.screenShareActive ? (
                     <MonitorUp className="size-4" />
                   ) : (
@@ -194,7 +213,12 @@ export function SessionRoomPage() {
                   )}
                   {operatorSeat.screenShareActive ? "Stop screen share" : "Start screen share"}
                 </Button>
-                <Button onClick={handleLeaveSession} variant="ghost">
+                <Button
+                  onClick={() => {
+                    void handleLeaveSession();
+                  }}
+                  variant="ghost"
+                >
                   <PhoneOff className="size-4" />
                   Leave session
                 </Button>
@@ -243,7 +267,13 @@ export function SessionRoomPage() {
                 <Button onClick={() => applyDemoPreset("takeover")} size="sm" variant="secondary">
                   Takeover required
                 </Button>
-                <Button onClick={failRecording} size="sm" variant="danger">
+                <Button
+                  onClick={() => {
+                    void failRecording();
+                  }}
+                  size="sm"
+                  variant="danger"
+                >
                   Recording failed
                 </Button>
               </div>

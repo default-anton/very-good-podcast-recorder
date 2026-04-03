@@ -68,7 +68,7 @@ export function RecordingStatusBar({
         </div>
 
         <div className="flex flex-wrap gap-2 lg:justify-end">
-          {sessionStatus === "draft" || sessionStatus === "ready" ? (
+          {sessionStatus === "ready" ? (
             <Button onClick={onActivateSession} variant="secondary">
               Activate hosted run
             </Button>
