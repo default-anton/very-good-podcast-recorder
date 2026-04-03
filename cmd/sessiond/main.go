@@ -61,6 +61,13 @@ Environment:
   SESSIOND_RELEASE_VERSION
   SESSIOND_ARTIFACT_ROOT
   SESSIOND_SQLITE_PATH
+
+The config file must currently provide:
+  livekit.api_key
+  livekit.api_secret
+  bootstrap.host_join_key
+  bootstrap.guest_join_key
+  bootstrap.seats
 `
 }
 
@@ -105,6 +112,14 @@ func run(
 
 	server, err := sessiond.NewServer(cfg)
 	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := server.Close(); err != nil {
+			logger.Error("close sessiond store", slog.String("error", err.Error()))
+		}
+	}()
+	if err := server.Initialize(ctx); err != nil {
 		return err
 	}
 

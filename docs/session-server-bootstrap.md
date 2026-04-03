@@ -148,9 +148,9 @@ Do **not** use LiveKit egress as the primary recording path.
 The first `sessiond` slice exposes 2 text-first JSON endpoints:
 
 - `GET /healthz` returns `200` when the process is alive
-- `GET /readyz` returns `200` only when the configured artifact root and SQLite directory exist locally; otherwise it returns `503`
+- `GET /readyz` returns `200` only when the configured artifact root exists, the SQLite parent directory exists, the session snapshot/bootstrap state loaded successfully, and the session-local SQLite file is writable; otherwise it returns `503`
 
-On startup, `sessiond` prepares the artifact root and SQLite parent directory with service-private permissions before serving requests.
+On startup, `sessiond` prepares the artifact root and SQLite parent directory with service-private permissions, opens SQLite, applies migrations, validates the config-backed bootstrap snapshot, and fails fast before serving requests if any of that is broken.
 
 Both endpoints report:
 
@@ -160,7 +160,7 @@ Both endpoints report:
 - `listen_addr`
 - `artifact_root`
 - `sqlite_path`
-- a `checks` object for the current local runtime-path signals
+- a `checks` object for the current local runtime-path signals, including snapshot/bootstrap load and SQLite writability
 
 This is the service-local health contract only. Hosted readiness will extend `checks` until it satisfies the full server contract below.
 

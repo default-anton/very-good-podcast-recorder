@@ -87,7 +87,7 @@ Rules:
 - moving to `disconnected` clears `current_connection_id`
 - `disconnected` does **not** rotate the claim secret by itself
 
-## seat picker states
+## seat picker states [done]
 
 The seat picker exposes these UI states:
 
@@ -109,7 +109,7 @@ If the browser already owns a seat for the current role link, the app should ski
 
 All examples use `/api/v1/...`.
 
-### 1. list seats for a role link
+### 1. list seats for a role link [done]
 
 `POST /api/v1/join/seat-picker`
 
@@ -165,7 +165,7 @@ Validates the role link and returns the seat list for that role.
 - the app should auto-reclaim `owned_seat_id` when present
 - do not expose claim versions, claim hashes, or raw secrets
 
-### 2. claim or recover a seat
+### 2. claim or recover a seat [done]
 
 `POST /api/v1/seat-claims/claim`
 
@@ -224,7 +224,7 @@ Recovering a disconnected seat is a new-owner operation. It always rotates the c
 }
 ```
 
-### 3. reclaim your existing seat
+### 3. reclaim your existing seat [done]
 
 `POST /api/v1/seat-claims/reclaim`
 

@@ -1,6 +1,7 @@
 package sessiond
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -11,6 +12,8 @@ type healthChecks struct {
 	ConfigLoaded       bool `json:"config_loaded"`
 	ArtifactRootExists bool `json:"artifact_root_exists"`
 	SQLiteDirExists    bool `json:"sqlite_dir_exists"`
+	SnapshotLoaded     bool `json:"snapshot_loaded"`
+	SQLiteWritable     bool `json:"sqlite_writable"`
 }
 
 type healthResponse struct {
@@ -25,12 +28,12 @@ type healthResponse struct {
 }
 
 func (s *Server) handleHealth(writer http.ResponseWriter, request *http.Request) {
-	response := s.healthResponse("ok")
+	response := s.healthResponse("ok", s.basicHealthChecks())
 	writeJSON(writer, http.StatusOK, response)
 }
 
 func (s *Server) handleReady(writer http.ResponseWriter, request *http.Request) {
-	response := s.healthResponse("ready")
+	response := s.readyResponse(request.Context())
 	statusCode := http.StatusOK
 	if !response.Checks.ready() {
 		response.Status = "not_ready"
@@ -40,7 +43,22 @@ func (s *Server) handleReady(writer http.ResponseWriter, request *http.Request) 
 	writeJSON(writer, statusCode, response)
 }
 
-func (s *Server) healthResponse(status string) healthResponse {
+func (s *Server) readyResponse(ctx context.Context) healthResponse {
+	checks := s.basicHealthChecks()
+	if !checks.pathsReady() {
+		return s.healthResponse("ready", checks)
+	}
+	if err := s.Initialize(ctx); err != nil {
+		return s.healthResponse("ready", checks)
+	}
+
+	checks.SnapshotLoaded = true
+	checks.SQLiteWritable = true
+
+	return s.healthResponse("ready", checks)
+}
+
+func (s *Server) healthResponse(status string, checks healthChecks) healthResponse {
 	return healthResponse{
 		Status:         status,
 		Service:        "sessiond",
@@ -49,16 +67,24 @@ func (s *Server) healthResponse(status string) healthResponse {
 		ListenAddr:     s.config.ListenAddr,
 		ArtifactRoot:   s.config.ArtifactRoot,
 		SQLitePath:     s.config.SQLitePath,
-		Checks: healthChecks{
-			ConfigLoaded:       true,
-			ArtifactRootExists: pathExists(s.config.ArtifactRoot),
-			SQLiteDirExists:    pathExists(filepath.Dir(s.config.SQLitePath)),
-		},
+		Checks:         checks,
 	}
 }
 
-func (checks healthChecks) ready() bool {
+func (s *Server) basicHealthChecks() healthChecks {
+	return healthChecks{
+		ConfigLoaded:       true,
+		ArtifactRootExists: pathExists(s.config.ArtifactRoot),
+		SQLiteDirExists:    pathExists(filepath.Dir(s.config.SQLitePath)),
+	}
+}
+
+func (checks healthChecks) pathsReady() bool {
 	return checks.ConfigLoaded && checks.ArtifactRootExists && checks.SQLiteDirExists
+}
+
+func (checks healthChecks) ready() bool {
+	return checks.pathsReady() && checks.SnapshotLoaded && checks.SQLiteWritable
 }
 
 func pathExists(path string) bool {

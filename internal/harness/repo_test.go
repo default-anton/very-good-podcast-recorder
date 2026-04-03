@@ -13,7 +13,6 @@ func TestLaterImplementationPathsRemainAbsent(t *testing.T) {
 	repoRoot := repoRoot(t)
 
 	for _, relativePath := range []string{
-		"db",
 		"deploy",
 		"internal/artifacts",
 		"internal/auth",
@@ -34,19 +33,29 @@ func TestLaterImplementationPathsRemainAbsent(t *testing.T) {
 	}
 }
 
-func TestSessiondSkeletonSlicePathsStayPresent(t *testing.T) {
+func TestSessiondClaimsAndStateSlicePathsStayPresent(t *testing.T) {
 	repoRoot := repoRoot(t)
 
 	for _, relativePath := range []string{
 		"cmd/sessiond/main.go",
+		"db/migrations/sessiond/00001_init.sql",
+		"db/migrations/sessiond/embed.go",
+		"internal/sessiond/claims_test.go",
 		"internal/sessiond/config.go",
 		"internal/sessiond/doc.go",
+		"internal/sessiond/livekit.go",
+		"internal/sessiond/recording_test.go",
+		"internal/sessiond/routes_claims.go",
 		"internal/sessiond/routes_health.go",
+		"internal/sessiond/routes_recording.go",
 		"internal/sessiond/server.go",
 		"internal/sessiond/server_test.go",
+		"internal/sessiond/sqlite.go",
+		"internal/sessiond/sqlite_claims.go",
+		"internal/sessiond/sqlite_recording.go",
 	} {
 		if _, err := os.Stat(filepath.Join(repoRoot, relativePath)); err != nil {
-			t.Fatalf("%s should stay present for the sessiond skeleton slice, got err=%v", relativePath, err)
+			t.Fatalf("%s should stay present for the sessiond claims/state slice, got err=%v", relativePath, err)
 		}
 	}
 }

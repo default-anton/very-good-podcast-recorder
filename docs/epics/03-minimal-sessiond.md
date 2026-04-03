@@ -4,7 +4,7 @@
 
 split into 2–3 PRs:
 - [done] service skeleton + config + health
-- claims/state basics
+- [done] claims/state basics
 - uploads + manifest persistence
 
 Related docs:

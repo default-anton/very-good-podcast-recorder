@@ -52,7 +52,7 @@ Protocol-specific rules:
 - only a claimed `host` seat may start or stop recording
 - a LiveKit room connection alone is **not** sufficient
 
-## recording epoch
+## recording epoch [done]
 
 A recording run has one stable shared id: `recording_epoch_id`.
 
@@ -70,7 +70,7 @@ Rules:
 
 ## endpoints
 
-### 1. get session snapshot
+### 1. get session snapshot [done]
 
 `GET /api/v1/session`
 
@@ -113,7 +113,7 @@ or
 - `recording_epoch_id` and `recording_epoch_started_at` are both `null` before recording starts
 - once recording starts, both remain set for the rest of the hosted run
 
-### 2. start recording
+### 2. start recording [done]
 
 `POST /api/v1/session-recording/start`
 
@@ -159,7 +159,7 @@ If the session is already in `draining`, `stopped`, or `failed`, return `409`. v
 }
 ```
 
-### 3. clock sync
+### 3. clock sync [done]
 
 `POST /api/v1/session-recording/clock-sync`
 
@@ -222,7 +222,7 @@ Recommended algorithm:
 
 This v1 contract does **not** require periodic background resync during one uninterrupted local segment. If later measurements show unacceptable long-run drift, we can extend the protocol with optional periodic sync without changing the segment model.
 
-### 4. stop recording
+### 4. stop recording [done]
 
 `POST /api/v1/session-recording/stop`
 

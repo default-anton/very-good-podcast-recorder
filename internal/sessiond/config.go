@@ -26,11 +26,30 @@ const (
 )
 
 type Config struct {
-	ListenAddr     string `yaml:"listen_addr"`
-	SessionID      string `yaml:"session_id"`
-	ReleaseVersion string `yaml:"release_version"`
-	ArtifactRoot   string `yaml:"artifact_root"`
-	SQLitePath     string `yaml:"sqlite_path"`
+	ListenAddr     string          `yaml:"listen_addr"`
+	SessionID      string          `yaml:"session_id"`
+	ReleaseVersion string          `yaml:"release_version"`
+	ArtifactRoot   string          `yaml:"artifact_root"`
+	SQLitePath     string          `yaml:"sqlite_path"`
+	LiveKit        LiveKitConfig   `yaml:"livekit"`
+	Bootstrap      BootstrapConfig `yaml:"bootstrap"`
+}
+
+type LiveKitConfig struct {
+	APIKey    string `yaml:"api_key"`
+	APISecret string `yaml:"api_secret"`
+}
+
+type BootstrapConfig struct {
+	HostJoinKey  string          `yaml:"host_join_key"`
+	GuestJoinKey string          `yaml:"guest_join_key"`
+	Seats        []BootstrapSeat `yaml:"seats"`
+}
+
+type BootstrapSeat struct {
+	ID          string `yaml:"id"`
+	Role        string `yaml:"role"`
+	DisplayName string `yaml:"display_name"`
 }
 
 type lookupEnvFunc func(string) (string, bool)
@@ -131,6 +150,66 @@ func (cfg Config) Validate() error {
 	case strings.TrimSpace(cfg.SQLitePath) == "":
 		return fmt.Errorf("sessiond sqlite path is required")
 	}
+	if err := cfg.LiveKit.validate(); err != nil {
+		return err
+	}
+	if err := cfg.Bootstrap.validate(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (cfg LiveKitConfig) validate() error {
+	if strings.TrimSpace(cfg.APIKey) == "" {
+		return fmt.Errorf("sessiond livekit api key is required")
+	}
+	if strings.TrimSpace(cfg.APISecret) == "" {
+		return fmt.Errorf("sessiond livekit api secret is required")
+	}
+
+	return nil
+}
+
+func (cfg BootstrapConfig) validate() error {
+	if cfg.HostJoinKey == "" {
+		return fmt.Errorf("sessiond bootstrap host join key is required")
+	}
+	if cfg.GuestJoinKey == "" {
+		return fmt.Errorf("sessiond bootstrap guest join key is required")
+	}
+	if len(cfg.Seats) == 0 {
+		return fmt.Errorf("sessiond bootstrap seats are required")
+	}
+
+	hasHost := false
+	seatIDs := make(map[string]struct{}, len(cfg.Seats))
+	displayNames := make(map[string]struct{}, len(cfg.Seats))
+	for _, seat := range cfg.Seats {
+		if seat.ID == "" {
+			return fmt.Errorf("bootstrap seat id is required")
+		}
+		if seat.DisplayName == "" {
+			return fmt.Errorf("bootstrap display name is required for seat %s", seat.ID)
+		}
+		if seat.Role != roleHost && seat.Role != roleGuest {
+			return fmt.Errorf("bootstrap seat %s role must be %s or %s", seat.ID, roleHost, roleGuest)
+		}
+		if seat.Role == roleHost {
+			hasHost = true
+		}
+		if _, exists := seatIDs[seat.ID]; exists {
+			return fmt.Errorf("bootstrap seat id %s is duplicated", seat.ID)
+		}
+		if _, exists := displayNames[seat.DisplayName]; exists {
+			return fmt.Errorf("bootstrap display name %s is duplicated", seat.DisplayName)
+		}
+		seatIDs[seat.ID] = struct{}{}
+		displayNames[seat.DisplayName] = struct{}{}
+	}
+	if !hasHost {
+		return fmt.Errorf("bootstrap seats must include at least one host seat")
+	}
 
 	return nil
 }
@@ -189,6 +268,21 @@ func mergeConfig(dst *Config, src Config) {
 	if src.SQLitePath != "" {
 		dst.SQLitePath = src.SQLitePath
 	}
+	if src.LiveKit.APIKey != "" {
+		dst.LiveKit.APIKey = src.LiveKit.APIKey
+	}
+	if src.LiveKit.APISecret != "" {
+		dst.LiveKit.APISecret = src.LiveKit.APISecret
+	}
+	if src.Bootstrap.HostJoinKey != "" {
+		dst.Bootstrap.HostJoinKey = src.Bootstrap.HostJoinKey
+	}
+	if src.Bootstrap.GuestJoinKey != "" {
+		dst.Bootstrap.GuestJoinKey = src.Bootstrap.GuestJoinKey
+	}
+	if len(src.Bootstrap.Seats) > 0 {
+		dst.Bootstrap.Seats = append([]BootstrapSeat(nil), src.Bootstrap.Seats...)
+	}
 }
 
 func resolveConfigFileRelativePaths(cfg *Config, baseDir string) {
@@ -206,6 +300,15 @@ func trimConfig(cfg *Config) {
 	cfg.ReleaseVersion = strings.TrimSpace(cfg.ReleaseVersion)
 	cfg.ArtifactRoot = strings.TrimSpace(cfg.ArtifactRoot)
 	cfg.SQLitePath = strings.TrimSpace(cfg.SQLitePath)
+	cfg.LiveKit.APIKey = strings.TrimSpace(cfg.LiveKit.APIKey)
+	cfg.LiveKit.APISecret = strings.TrimSpace(cfg.LiveKit.APISecret)
+	cfg.Bootstrap.HostJoinKey = strings.TrimSpace(cfg.Bootstrap.HostJoinKey)
+	cfg.Bootstrap.GuestJoinKey = strings.TrimSpace(cfg.Bootstrap.GuestJoinKey)
+	for i := range cfg.Bootstrap.Seats {
+		cfg.Bootstrap.Seats[i].ID = strings.TrimSpace(cfg.Bootstrap.Seats[i].ID)
+		cfg.Bootstrap.Seats[i].Role = strings.TrimSpace(cfg.Bootstrap.Seats[i].Role)
+		cfg.Bootstrap.Seats[i].DisplayName = strings.TrimSpace(cfg.Bootstrap.Seats[i].DisplayName)
+	}
 }
 
 func applyEnvOverrides(cfg *Config, lookupEnv lookupEnvFunc) {

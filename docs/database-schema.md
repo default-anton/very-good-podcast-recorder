@@ -89,7 +89,7 @@ create table session_servers (
 );
 ```
 
-## session-server schema
+## session-server schema [done]
 
 Keep the session-server schema focused on 3 things only:
 
