@@ -205,7 +205,7 @@ func TestLoadConfigParsesBootstrapAndLiveKitYAML(t *testing.T) {
 	}
 }
 
-func TestLoadConfigRequiresLiveKitAndBootstrap(t *testing.T) {
+func TestLoadConfigDoesNotRequireTemporaryRuntimeBootstrapConfig(t *testing.T) {
 	t.Parallel()
 
 	tempDir := t.TempDir()
@@ -217,30 +217,12 @@ func TestLoadConfigRequiresLiveKitAndBootstrap(t *testing.T) {
 		t.Fatalf("osWriteFile(%q): %v", configPath, err)
 	}
 
-	_, err := LoadConfig(nil, lookupEnvFromMap(map[string]string{envConfigPath: configPath}))
-	if err == nil {
-		t.Fatal("LoadConfig() error = nil, want missing livekit/bootstrap validation error")
+	cfg, err := LoadConfig(nil, lookupEnvFromMap(map[string]string{envConfigPath: configPath}))
+	if err != nil {
+		t.Fatalf("LoadConfig(): %v", err)
 	}
-	if !strings.Contains(err.Error(), "livekit api key") {
-		t.Fatalf("LoadConfig() error = %q, want missing livekit api key message", err)
-	}
-
-	configFile = strings.Join([]string{
-		"session_id: sess-missing-bootstrap",
-		"livekit:",
-		"  api_key: lk-test-key",
-		"  api_secret: lk-test-secret",
-	}, "\n")
-	if err := osWriteFile(configPath, configFile); err != nil {
-		t.Fatalf("osWriteFile(%q): %v", configPath, err)
-	}
-
-	_, err = LoadConfig(nil, lookupEnvFromMap(map[string]string{envConfigPath: configPath}))
-	if err == nil {
-		t.Fatal("LoadConfig() error = nil, want missing bootstrap validation error")
-	}
-	if !strings.Contains(err.Error(), "bootstrap host join key") {
-		t.Fatalf("LoadConfig() error = %q, want missing bootstrap host join key message", err)
+	if cfg.SessionID != "sess-missing-runtime-auth" {
+		t.Fatalf("SessionID = %q, want %q", cfg.SessionID, "sess-missing-runtime-auth")
 	}
 }
 
@@ -357,6 +339,32 @@ func TestReadyEndpointTracksRuntimePreparation(t *testing.T) {
 	}
 	if healthResponse.Status != "ok" {
 		t.Fatalf("/healthz status = %q, want %q", healthResponse.Status, "ok")
+	}
+}
+
+func TestInitializeRequiresLiveKitAndBootstrap(t *testing.T) {
+	t.Parallel()
+
+	tempDir := t.TempDir()
+	cfg := Config{
+		ListenAddr:     "127.0.0.1:8081",
+		SessionID:      "sess-missing-runtime-auth",
+		ReleaseVersion: "test",
+		ArtifactRoot:   filepath.Join(tempDir, "artifacts"),
+		SQLitePath:     filepath.Join(tempDir, "state", "sessiond.sqlite"),
+	}
+	if err := PrepareRuntime(cfg); err != nil {
+		t.Fatalf("PrepareRuntime(): %v", err)
+	}
+
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Fatalf("NewServer(): %v", err)
+	}
+	if err := server.Initialize(context.Background()); err == nil {
+		t.Fatal("server.Initialize() error = nil, want missing runtime config failure")
+	} else if !strings.Contains(err.Error(), "livekit api key") {
+		t.Fatalf("server.Initialize() error = %q, want missing livekit api key message", err)
 	}
 }
 

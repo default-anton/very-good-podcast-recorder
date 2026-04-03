@@ -129,6 +129,10 @@ type seatClaimRow struct {
 }
 
 func openStore(ctx context.Context, cfg Config) (*store, error) {
+	if err := cfg.ValidateRuntimeRequirements(); err != nil {
+		return nil, fmt.Errorf("validate sessiond runtime config: %w", err)
+	}
+
 	db, err := sql.Open("sqlite", cfg.SQLitePath)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite %s: %w", cfg.SQLitePath, err)
@@ -189,10 +193,6 @@ func (s *store) close() error {
 }
 
 func (s *store) ensureBootstrapped(ctx context.Context) error {
-	if err := s.config.Bootstrap.validate(); err != nil {
-		return fmt.Errorf("validate sessiond bootstrap config: %w", err)
-	}
-
 	count, err := countRows(ctx, s.db, "select count(*) from session_snapshot")
 	if err != nil {
 		return fmt.Errorf("check session snapshot bootstrap state: %w", err)

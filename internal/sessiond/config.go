@@ -150,6 +150,11 @@ func (cfg Config) Validate() error {
 	case strings.TrimSpace(cfg.SQLitePath) == "":
 		return fmt.Errorf("sessiond sqlite path is required")
 	}
+
+	return nil
+}
+
+func (cfg Config) ValidateRuntimeRequirements() error {
 	if err := cfg.LiveKit.validate(); err != nil {
 		return err
 	}
