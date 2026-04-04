@@ -2,9 +2,9 @@
 
 ## Recommended PR slices
 
-already about right as 1 PR:
-- local runtime compose/config/scripts
-- smoke command + inspectable health/log output
+split into 2 PRs:
+- local runtime topology/config source of truth
+- local runtime compose/config/scripts + smoke output
 
 Related docs:
 
@@ -57,6 +57,7 @@ Bring up the minimum real stack:
 - the same runtime is used for app development and E2E harness work
 - local state/logs/artifacts are inspectable
 - `local-smoke` emits text-first health status plus the resolved control-app and session-app URLs
+- local control/session app origins, API URLs, and runtime ports come from one local-runtime source of truth instead of new scattered `127.0.0.1` literals
 - `deploy/local/` exists, but `deploy/session-server/` stays deferred until hosted bootstrap work is real
 
 ## feedback loop
@@ -74,3 +75,5 @@ If smoke validation is flaky, improve logs and health output before adding more 
 ## notes
 
 This is the one deliberate early `deploy/` addition because milestone 1 needs a real local stack. Keep the control app and session app as distinct runtime targets, even if a local reverse proxy fronts them later. Do **not** use this as an excuse to add hosted bootstrap assets yet.
+
+Treat local topology as product contract, not random app config. This epic should remove or centralize the existing hard-coded local origins/ports as it lands so epic 05 does not build more harness/runtime logic on duplicated topology assumptions.

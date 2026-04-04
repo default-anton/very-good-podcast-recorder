@@ -70,10 +70,22 @@ describe("repo landing zones", () => {
     }
   });
 
+  it("keeps the sessiond landing zones in place", () => {
+    for (const relativePath of [
+      "cmd/sessiond/main.go",
+      "internal/sessiond/server.go",
+      "internal/sessiond/routes_claims.go",
+      "internal/sessiond/routes_recording.go",
+      "internal/sessiond/routes_upload.go",
+      "db/migrations/sessiond/00001_init.sql",
+      "db/migrations/sessiond/embed.go",
+    ]) {
+      expect(existsSync(path.join(repoRoot, relativePath))).toBe(true);
+    }
+  });
+
   it("keeps later implementation trees absent", () => {
     for (const relativePath of [
-      "cmd",
-      "db",
       "deploy",
       "internal/artifacts",
       "internal/auth",
