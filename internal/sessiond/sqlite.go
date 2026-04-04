@@ -116,6 +116,7 @@ type snapshotRow struct {
 	RecordingHealth         string
 	RecordingEpochID        sql.NullString
 	RecordingEpochStartedAt sql.NullString
+	UpdatedAt               string
 }
 
 type seatClaimRow struct {
@@ -153,6 +154,10 @@ func openStore(ctx context.Context, cfg Config) (*store, error) {
 		return nil, err
 	}
 	if err := store.loadRecordingClockAnchor(ctx); err != nil {
+		db.Close()
+		return nil, err
+	}
+	if err := store.rebuildArtifacts(ctx); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -295,7 +300,8 @@ func (s *store) loadSnapshot(ctx context.Context) (snapshotRow, error) {
 		        recording_state,
 		        recording_health,
 		        recording_epoch_id,
-		        recording_epoch_started_at
+		        recording_epoch_started_at,
+		        updated_at
 		 from session_snapshot
 		 where session_id = ?`,
 		s.config.SessionID,
@@ -310,6 +316,7 @@ func (s *store) loadSnapshot(ctx context.Context) (snapshotRow, error) {
 		&snapshot.RecordingHealth,
 		&snapshot.RecordingEpochID,
 		&snapshot.RecordingEpochStartedAt,
+		&snapshot.UpdatedAt,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return snapshotRow{}, fmt.Errorf("session snapshot %s is missing from sqlite", s.config.SessionID)

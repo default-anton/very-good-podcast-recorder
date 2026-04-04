@@ -83,8 +83,8 @@ func TestRecordingEndpointsRequireHostClaimAndKeepOneEpoch(t *testing.T) {
 	if statusCode != http.StatusOK {
 		t.Fatalf("first /session-recording/stop status = %d, want %d", statusCode, http.StatusOK)
 	}
-	if stopped.RecordingState != recordingStateDraining {
-		t.Fatalf("stopped recording_state = %q, want %q", stopped.RecordingState, recordingStateDraining)
+	if stopped.RecordingState != recordingStateStopped {
+		t.Fatalf("stopped recording_state = %q, want %q", stopped.RecordingState, recordingStateStopped)
 	}
 	if *stopped.RecordingEpochID != *started.RecordingEpochID {
 		t.Fatalf("stop epoch id = %q, want %q", *stopped.RecordingEpochID, *started.RecordingEpochID)
@@ -95,8 +95,8 @@ func TestRecordingEndpointsRequireHostClaimAndKeepOneEpoch(t *testing.T) {
 	if statusCode != http.StatusOK {
 		t.Fatalf("idempotent /session-recording/stop status = %d, want %d", statusCode, http.StatusOK)
 	}
-	if stoppedAgain.RecordingState != recordingStateDraining {
-		t.Fatalf("idempotent stop recording_state = %q, want %q", stoppedAgain.RecordingState, recordingStateDraining)
+	if stoppedAgain.RecordingState != recordingStateStopped {
+		t.Fatalf("idempotent stop recording_state = %q, want %q", stoppedAgain.RecordingState, recordingStateStopped)
 	}
 
 	var afterStop sessionView
@@ -104,8 +104,8 @@ func TestRecordingEndpointsRequireHostClaimAndKeepOneEpoch(t *testing.T) {
 	if statusCode != http.StatusOK {
 		t.Fatalf("post-stop /session status = %d, want %d", statusCode, http.StatusOK)
 	}
-	if afterStop.RecordingState != recordingStateDraining {
-		t.Fatalf("post-stop recording_state = %q, want %q", afterStop.RecordingState, recordingStateDraining)
+	if afterStop.RecordingState != recordingStateStopped {
+		t.Fatalf("post-stop recording_state = %q, want %q", afterStop.RecordingState, recordingStateStopped)
 	}
 	if *afterStop.RecordingEpochID != *started.RecordingEpochID {
 		t.Fatalf("post-stop epoch id = %q, want %q", *afterStop.RecordingEpochID, *started.RecordingEpochID)

@@ -47,6 +47,9 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("POST /api/v1/session-recording/start", s.handleStartRecording)
 	s.mux.HandleFunc("POST /api/v1/session-recording/clock-sync", s.handleClockSync)
 	s.mux.HandleFunc("POST /api/v1/session-recording/stop", s.handleStopRecording)
+	s.mux.HandleFunc("POST /api/v1/recording-tracks/start", s.handleStartTrack)
+	s.mux.HandleFunc("PUT /api/v1/recording-tracks/{recording_track_id}/chunks/{chunk_index}", s.handleUploadChunk)
+	s.mux.HandleFunc("POST /api/v1/recording-tracks/{recording_track_id}/finish", s.handleFinishTrack)
 }
 
 func (s *Server) Close() error {
@@ -114,6 +117,10 @@ func requestNotFound(code string, message string) error {
 
 func requestConflict(code string, message string) error {
 	return &requestError{StatusCode: http.StatusConflict, Code: code, Message: message}
+}
+
+func requestPayloadTooLarge(code string, message string) error {
+	return &requestError{StatusCode: http.StatusRequestEntityTooLarge, Code: code, Message: message}
 }
 
 func writeRequestError(writer http.ResponseWriter, err error) {

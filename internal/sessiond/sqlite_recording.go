@@ -100,6 +100,9 @@ func (s *store) startRecording(ctx context.Context, rawCookie string) (recording
 		}
 		s.recordingEpochID = recordingEpochID
 		s.recordingEpochZero = recordingEpochZero
+		if err := s.syncSessionArtifacts(ctx); err != nil {
+			return recordingSnapshot{}, 0, err
+		}
 		return recordingSnapshot{
 			SessionID:               s.config.SessionID,
 			RecordingState:          recordingStateRecording,
@@ -141,6 +144,7 @@ func (s *store) stopRecording(ctx context.Context, rawCookie string) (recordingS
 
 	switch snapshot.RecordingState {
 	case recordingStateRecording:
+		updatedAt := timestampNow()
 		if _, err := s.db.ExecContext(
 			ctx,
 			`update session_snapshot
@@ -148,14 +152,36 @@ func (s *store) stopRecording(ctx context.Context, rawCookie string) (recordingS
 			     updated_at = ?
 			 where session_id = ?`,
 			recordingStateDraining,
-			timestampNow(),
+			updatedAt,
 			s.config.SessionID,
 		); err != nil {
 			return recordingSnapshot{}, fmt.Errorf("transition session snapshot to draining: %w", err)
 		}
 		snapshot.RecordingState = recordingStateDraining
+		if err := s.maybeAdvanceSessionToStopped(ctx); err != nil {
+			return recordingSnapshot{}, err
+		}
+		snapshot, err = s.loadSnapshot(ctx)
+		if err != nil {
+			return recordingSnapshot{}, err
+		}
+		if err := s.syncSessionArtifacts(ctx); err != nil {
+			return recordingSnapshot{}, err
+		}
 		return snapshot.asRecordingSnapshot(), nil
 	case recordingStateDraining, recordingStateStopped:
+		if snapshot.RecordingState == recordingStateDraining {
+			if err := s.maybeAdvanceSessionToStopped(ctx); err != nil {
+				return recordingSnapshot{}, err
+			}
+			snapshot, err = s.loadSnapshot(ctx)
+			if err != nil {
+				return recordingSnapshot{}, err
+			}
+		}
+		if err := s.syncSessionArtifacts(ctx); err != nil {
+			return recordingSnapshot{}, err
+		}
 		return snapshot.asRecordingSnapshot(), nil
 	case recordingStateWaiting:
 		return recordingSnapshot{}, requestConflict(

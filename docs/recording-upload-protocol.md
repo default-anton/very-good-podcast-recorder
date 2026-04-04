@@ -108,7 +108,7 @@ Per-chunk timing is intentionally out of the critical path for v1.
 
 ## endpoints
 
-### 1. start track
+### 1. start track [done]
 
 `POST /api/v1/recording-tracks/start`
 
@@ -136,6 +136,7 @@ Creates or replays one logical track segment for the currently claimed seat.
 - `recording_track_id` is client-generated and unique for this segment
 - `recording_epoch_id` must equal the current session `recording_epoch_id`
 - `source`, `source_instance_id`, `capture_group_id`, and `segment_index` must follow `docs/capture-profile.md`
+- `source_instance_id` must be a path-safe opaque token because it becomes part of the artifact path; do not use `/`, `\\`, `.` or `..` as path segments
 - `kind` must be `audio` or `video`
 - `source` + `kind` must be one of: `mic+audio`, `camera+video`, `screen+video`, `system_audio+audio`
 - `segment_index` must be `>= 0`
@@ -201,7 +202,7 @@ The server must also validate that the request `recording_epoch_id` matches the 
 }
 ```
 
-### 2. upload chunk
+### 2. upload chunk [done]
 
 `PUT /api/v1/recording-tracks/{recording_track_id}/chunks/{chunk_index}`
 
@@ -290,7 +291,7 @@ or
 }
 ```
 
-### 3. finish track
+### 3. finish track [done]
 
 `POST /api/v1/recording-tracks/{recording_track_id}/finish`
 

@@ -36,7 +36,7 @@ It does **not** define:
 - session or track lifecycle state machines
 - stitched exports, muxed outputs, or post-processing jobs
 
-## directory layout
+## directory layout [done]
 
 ```text
 sessions/<session_id>/
@@ -61,7 +61,7 @@ Rules:
 - `segment-0000` matches `segment_index = 0`
 - all paths stored in manifests are relative paths
 
-## `session.json`
+## `session.json` [done]
 
 Purpose: session-level summary and index.
 
@@ -141,7 +141,7 @@ Example:
 }
 ```
 
-## `track.json`
+## `track.json` [done]
 
 Purpose: one track-segment manifest with chunk listing and salvage metadata.
 
@@ -243,7 +243,7 @@ Example:
 }
 ```
 
-## `artifact_status`
+## `artifact_status` [done]
 
 Keep artifact status separate from upload/session lifecycle state.
 
@@ -254,10 +254,11 @@ Keep artifact status separate from upload/session lifecycle state.
 | `missing` | the segment has no durable media bytes |
 | `failed` | a terminal artifact/manifest failure happened; salvage may still exist |
 
-## file rules
+## file rules [done]
 
 - filenames are fixed: `session.json`, `track.json`, `segment-0000`, `chunk-000000.webm`
 - use zero-padded numeric indexes for segment and chunk directories/files
+- IDs that become artifact path components must be path-safe opaque tokens; do not use `/`, `\\`, `.` or `..` as path segments
 - store capture offsets as integer microseconds
 - store wall-clock timestamps as RFC 3339 UTC strings
 - store only actual capture settings, not requested constraints

@@ -241,6 +241,8 @@ No body.
 
 On first success while the session is `recording`, the server must transition `session_snapshot.recording_state` to `draining` and preserve the current `recording_health`.
 
+If no started tracks remain open after that transition, the server may immediately advance to `stopped` before returning the response.
+
 ### idempotency rules
 
 If the session is already in `draining` or `stopped`, return success with the current recording snapshot.
