@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'EOF'
+Usage:
+  ./scripts/local-down
+
+Stop the core VGPR local runtime and preserve logs, state, and artifacts under .vgpr/local/.
+EOF
+  exit 0
+fi
+
+source "$(dirname "$0")/local-runtime-common"
+
+require_local_runtime_prereqs
+load_local_runtime_env
+load_local_runtime_topology
+ensure_local_runtime_dirs
+write_livekit_runtime_assets
+snapshot_livekit_logs
+
+stop_managed_process "sessiond"
+stop_managed_process "session-app"
+stop_managed_process "control-app"
+compose down --remove-orphans >/dev/null 2>&1 || true
+
+printf 'local runtime is down\n'
+printf 'logs preserved in %s\n' "$vgpr_local_logs_dir"

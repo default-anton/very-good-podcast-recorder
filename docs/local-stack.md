@@ -34,30 +34,39 @@ It must support:
 - deterministic failure injection
 - artifact inspection without a remote deployment
 
-## boot flow
+## boot flow [done]
 
-The exact repo-local command may evolve, but the contract is fixed:
+The repo-local command path for the `core` profile is:
 
 1. install the host toolchain from `docs/version-pins.md`
 2. install Docker Engine or Docker Desktop with Compose v2
-3. run one repo-local bring-up command
-4. verify the stack is healthy
-5. run the local harness against that same runtime
+3. run `mise exec -- ./scripts/local-up`
+4. verify the stack with `mise exec -- ./scripts/local-smoke`
+5. stop it with `mise exec -- ./scripts/local-down`
+
+`./scripts/local-smoke` writes `.vgpr/local/e2e/local-smoke.json` and emits the resolved control-app and session-app URLs alongside service health.
+
+`./scripts/local-up` must fail instead of silently attaching to unrelated listeners already sitting on the runtime ports. If a port is occupied by something the repo did not start, fix that first or stop the old runtime explicitly.
 
 Do **not** create a second, different local runtime just for tests.
 
-## local profiles
+## core profile [done]
 
-| Profile | Runs | Purpose |
-| --- | --- | --- |
-| `core` | control plane, sessiond, LiveKit, SQLite, local artifact disk, `web/control`, `web/session` | everyday dev and the default harness |
-| `edge` | `core` plus Caddy and coturn | exercise the hosted public-hostname/TLS/TURN shape locally |
+`mise exec -- ./scripts/local-up` brings up the default `core` profile:
 
-Rules:
+- control plane (`web/control` Vite dev server plus local API sidecar)
+- session app (`web/session` Vite dev server)
+- `sessiond`
+- LiveKit
+- local SQLite state and artifact disk under `.vgpr/local/`
 
-- `core` is the default inner loop
-- `edge` exists only when working on networking or TURN-sensitive flows
-- do **not** require Caddy or TURN in the normal `core` loop
+`core` is the default inner loop and the same runtime the harness should target.
+
+## edge profile
+
+`edge` is still deferred. It will add Caddy and coturn on top of `core` when networking or TURN-sensitive work is real.
+
+Do **not** require Caddy or TURN in the normal `core` loop.
 
 ## env and config [done]
 
@@ -102,7 +111,7 @@ Rules:
 - never treat `down` as the hosted rollback path
 - if a migration gets messy, prefer resetting the local runtime over pretending a risky rollback is safe
 
-## logs, state, and artifacts
+## logs, state, and artifacts [done]
 
 All backend services emit structured JSON logs.
 
@@ -111,9 +120,9 @@ All backend services emit structured JSON logs.
 | `.vgpr/local/state/` | local SQLite files and runtime state |
 | `.vgpr/local/logs/` | service logs and preserved failure logs |
 | `.vgpr/local/artifacts/` | uploaded chunks, manifests, and assembled downloads |
-| `.vgpr/local/e2e/` | harness summary JSON and preserved scenario outputs |
+| `.vgpr/local/e2e/` | smoke and harness summary JSON plus preserved scenario outputs |
 
-Do not delete failed artifacts or logs automatically.
+Do not delete failed artifacts or logs automatically. `./scripts/local-reset --force` is the explicit escape hatch when you really want to wipe the disposable local runtime.
 
 ## non-goals
 

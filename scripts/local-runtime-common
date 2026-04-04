@@ -1,0 +1,441 @@
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+deploy_local_dir="$repo_root/deploy/local"
+vgpr_local_root="$repo_root/.vgpr/local"
+vgpr_local_artifacts_dir="$vgpr_local_root/artifacts"
+vgpr_local_config_dir="$vgpr_local_root/config"
+vgpr_local_e2e_dir="$vgpr_local_root/e2e"
+vgpr_local_logs_dir="$vgpr_local_root/logs"
+vgpr_local_run_dir="$vgpr_local_root/run"
+vgpr_local_state_dir="$vgpr_local_root/state"
+compose_env_path="$vgpr_local_config_dir/compose.env"
+livekit_runtime_config_path="$vgpr_local_config_dir/livekit.yaml"
+local_smoke_summary_path="$vgpr_local_e2e_dir/local-smoke.json"
+compose_project_name="vgpr-local"
+
+local_runtime_env_keys=(
+  SESSIOND_SESSION_ID
+  SESSIOND_RELEASE_VERSION
+  SESSIOND_LIVEKIT_API_KEY
+  SESSIOND_LIVEKIT_API_SECRET
+  SESSIOND_BOOTSTRAP_HOST_JOIN_KEY
+  SESSIOND_BOOTSTRAP_GUEST_JOIN_KEY
+  SESSIOND_BOOTSTRAP_SEATS_JSON
+)
+
+local_runtime_shell_env_restore=()
+
+capture_local_runtime_shell_env() {
+  local_runtime_shell_env_restore=()
+
+  local key
+  for key in "${local_runtime_env_keys[@]}"; do
+    if [[ -v $key ]]; then
+      local_runtime_shell_env_restore+=("$key=${!key}")
+    fi
+  done
+}
+
+restore_local_runtime_shell_env() {
+  local entry key value
+  for entry in "${local_runtime_shell_env_restore[@]}"; do
+    key=${entry%%=*}
+    value=${entry#*=}
+    export "$key=$value"
+  done
+}
+
+load_local_runtime_env() {
+  capture_local_runtime_shell_env
+
+  if [[ -f "$deploy_local_dir/sessiond.env" ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "$deploy_local_dir/sessiond.env"
+    set +a
+  fi
+
+  if [[ -f "$repo_root/.env.local" ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "$repo_root/.env.local"
+    set +a
+  fi
+
+  restore_local_runtime_shell_env
+
+  local key
+  for key in "${local_runtime_env_keys[@]}"; do
+    if [[ ! -v $key || -z ${!key} ]]; then
+      printf 'local runtime config is missing %s\n' "$key" >&2
+      return 1
+    fi
+  done
+}
+
+load_local_runtime_topology() {
+  local values
+  values=$(jq -r '[
+    .defaultHost,
+    .ports.controlApp,
+    .ports.sessionApp,
+    .ports.controlApi,
+    .ports.sessiond,
+    .ports.liveKit,
+    .udpRanges.liveKit.start,
+    .udpRanges.liveKit.end
+  ] | @tsv' "$deploy_local_dir/topology.json")
+
+  IFS=$'\t' read -r \
+    local_runtime_default_host \
+    local_runtime_control_app_port \
+    local_runtime_session_app_port \
+    local_runtime_control_api_port \
+    local_runtime_sessiond_port \
+    local_runtime_livekit_port \
+    local_runtime_livekit_udp_range_start \
+    local_runtime_livekit_udp_range_end <<<"$values"
+
+  local_runtime_control_app_url="http://${local_runtime_default_host}:${local_runtime_control_app_port}"
+  local_runtime_session_app_url="http://${local_runtime_default_host}:${local_runtime_session_app_port}"
+  local_runtime_control_api_origin="http://${local_runtime_default_host}:${local_runtime_control_api_port}"
+  local_runtime_sessiond_base_url="http://${local_runtime_default_host}:${local_runtime_sessiond_port}"
+  local_runtime_livekit_http_url="http://${local_runtime_default_host}:${local_runtime_livekit_port}"
+  local_runtime_livekit_ws_url="ws://${local_runtime_default_host}:${local_runtime_livekit_port}"
+
+  export VGPR_LOCAL_DEFAULT_HOST="$local_runtime_default_host"
+  export VGPR_LOCAL_LIVEKIT_PORT="$local_runtime_livekit_port"
+  export VGPR_LOCAL_LIVEKIT_UDP_RANGE_START="$local_runtime_livekit_udp_range_start"
+  export VGPR_LOCAL_LIVEKIT_UDP_RANGE_END="$local_runtime_livekit_udp_range_end"
+}
+
+require_local_runtime_prereqs() {
+  require_command curl
+  require_command docker
+  require_command jq
+  require_command mise
+  require_command node
+
+  if ! docker compose version >/dev/null 2>&1; then
+    printf 'docker compose v2 is required for the local runtime\n' >&2
+    return 1
+  fi
+}
+
+require_command() {
+  local command_name=$1
+
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    printf 'missing required command: %s\n' "$command_name" >&2
+    return 1
+  fi
+}
+
+ensure_local_runtime_dirs() {
+  mkdir -p \
+    "$vgpr_local_artifacts_dir" \
+    "$vgpr_local_config_dir" \
+    "$vgpr_local_e2e_dir" \
+    "$vgpr_local_logs_dir" \
+    "$vgpr_local_run_dir" \
+    "$vgpr_local_state_dir"
+}
+
+sessiond_artifact_root() {
+  printf '%s/%s\n' "$vgpr_local_artifacts_dir" "$SESSIOND_SESSION_ID"
+}
+
+sessiond_sqlite_path() {
+  printf '%s/%s/sessiond.sqlite\n' "$vgpr_local_state_dir" "$SESSIOND_SESSION_ID"
+}
+
+pid_file_for() {
+  printf '%s/%s.pid\n' "$vgpr_local_run_dir" "$1"
+}
+
+log_file_for() {
+  printf '%s/%s.log\n' "$vgpr_local_logs_dir" "$1"
+}
+
+append_log_marker() {
+  local log_path=$1
+  printf '\n--- %s ---\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >>"$log_path"
+}
+
+managed_process_running() {
+  local name=$1
+  local pid_file pid
+
+  pid_file=$(pid_file_for "$name")
+  if [[ ! -f "$pid_file" ]]; then
+    return 1
+  fi
+
+  pid=$(<"$pid_file")
+  if [[ -z "$pid" ]]; then
+    return 1
+  fi
+
+  if kill -0 "$pid" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  rm -f "$pid_file"
+  return 1
+}
+
+start_managed_process() {
+  local name=$1
+  local command=$2
+  local pid_file log_path
+
+  if managed_process_running "$name"; then
+    return 0
+  fi
+
+  pid_file=$(pid_file_for "$name")
+  log_path=$(log_file_for "$name")
+  append_log_marker "$log_path"
+
+  nohup bash -lc "cd $(printf '%q' "$repo_root") && $command" >>"$log_path" 2>&1 &
+  echo "$!" >"$pid_file"
+}
+
+stop_managed_process() {
+  local name=$1
+  local pid_file pid waited
+
+  pid_file=$(pid_file_for "$name")
+  if [[ ! -f "$pid_file" ]]; then
+    return 0
+  fi
+
+  pid=$(<"$pid_file")
+  if [[ -z "$pid" ]]; then
+    rm -f "$pid_file"
+    return 0
+  fi
+
+  if ! kill -0 "$pid" >/dev/null 2>&1; then
+    rm -f "$pid_file"
+    return 0
+  fi
+
+  kill "$pid" >/dev/null 2>&1 || true
+
+  waited=0
+  while kill -0 "$pid" >/dev/null 2>&1; do
+    if (( waited >= 15 )); then
+      kill -9 "$pid" >/dev/null 2>&1 || true
+      break
+    fi
+
+    sleep 1
+    waited=$((waited + 1))
+  done
+
+  rm -f "$pid_file"
+}
+
+port_is_available() {
+  local host=$1
+  local port=$2
+
+  node --input-type=module -e '
+    import net from "node:net";
+
+    const [host, port] = process.argv.slice(1);
+    const server = net.createServer();
+    server.unref();
+    server.once("error", (error) => {
+      if (error && typeof error === "object" && "code" in error && error.code === "EADDRINUSE") {
+        process.exit(1);
+      }
+
+      console.error(String(error));
+      process.exit(2);
+    });
+    server.listen({ exclusive: true, host, port: Number(port) }, () => {
+      server.close(() => process.exit(0));
+    });
+  ' "$host" "$port" >/dev/null 2>&1
+}
+
+port_listener_hint() {
+  local port=$1
+
+  if ! command -v lsof >/dev/null 2>&1; then
+    return 0
+  fi
+
+  lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || true
+}
+
+require_managed_process_ports_available() {
+  local name=$1
+  shift
+
+  if managed_process_running "$name"; then
+    return 0
+  fi
+
+  local port details
+  for port in "$@"; do
+    if port_is_available "$local_runtime_default_host" "$port"; then
+      continue
+    fi
+
+    printf '%s cannot start because %s:%s is already in use by an unmanaged listener.\n' \
+      "$name" \
+      "$local_runtime_default_host" \
+      "$port" >&2
+    printf 'Refusing to attach to a process this repo did not start, because local-down would not own it.\n' >&2
+
+    details=$(port_listener_hint "$port")
+    if [[ -n "$details" ]]; then
+      printf 'Current listener(s):\n%s\n' "$details" >&2
+    fi
+
+    printf 'Free the port or stop the existing VGPR runtime before retrying.\n' >&2
+    return 1
+  done
+}
+
+wait_for_http_probe() {
+  local name=$1
+  local url=$2
+  local expected_fragment=${3:-}
+  local log_name=${4:-$1}
+  local managed_name=${5-__default__}
+  local body_path status_code attempt
+
+  if [[ "$managed_name" == "__default__" ]]; then
+    managed_name=$log_name
+  fi
+
+  body_path=$(mktemp)
+  for attempt in $(seq 1 60); do
+    if [[ -n "$managed_name" ]] && ! managed_process_running "$managed_name"; then
+      rm -f "$body_path"
+      printf '%s exited before it became ready; see %s\n' "$name" "$(log_file_for "$log_name")" >&2
+      return 1
+    fi
+
+    status_code=$(curl -s -o "$body_path" -w '%{http_code}' --max-time 2 "$url" 2>/dev/null || true)
+    if [[ "$status_code" == "200" ]]; then
+      if [[ -z "$expected_fragment" ]] || grep -Fq "$expected_fragment" "$body_path"; then
+        rm -f "$body_path"
+        return 0
+      fi
+    fi
+
+    sleep 1
+  done
+
+  rm -f "$body_path"
+  printf '%s did not become ready at %s; see %s\n' "$name" "$url" "$(log_file_for "$log_name")" >&2
+  return 1
+}
+
+wait_for_json_field_equals() {
+  local name=$1
+  local url=$2
+  local jq_filter=$3
+  local expected_value=$4
+  local log_name=${5:-$1}
+  local managed_name=${6-__default__}
+  local body_path status_code actual_value attempt
+
+  if [[ "$managed_name" == "__default__" ]]; then
+    managed_name=$log_name
+  fi
+
+  body_path=$(mktemp)
+  for attempt in $(seq 1 60); do
+    if [[ -n "$managed_name" ]] && ! managed_process_running "$managed_name"; then
+      rm -f "$body_path"
+      printf '%s exited before it became ready; see %s\n' "$name" "$(log_file_for "$log_name")" >&2
+      return 1
+    fi
+
+    status_code=$(curl -s -o "$body_path" -w '%{http_code}' --max-time 2 "$url" 2>/dev/null || true)
+    if [[ "$status_code" == "200" ]]; then
+      actual_value=$(jq -r "$jq_filter" "$body_path" 2>/dev/null || true)
+      if [[ "$actual_value" == "$expected_value" ]]; then
+        rm -f "$body_path"
+        return 0
+      fi
+    fi
+
+    sleep 1
+  done
+
+  rm -f "$body_path"
+  printf '%s did not become ready at %s; see %s\n' "$name" "$url" "$(log_file_for "$log_name")" >&2
+  return 1
+}
+
+write_livekit_runtime_assets() {
+  render_env_template "$deploy_local_dir/livekit.yaml" "$livekit_runtime_config_path"
+
+  cat >"$compose_env_path" <<EOF
+VGPR_LOCAL_DEFAULT_HOST=$local_runtime_default_host
+VGPR_LOCAL_LIVEKIT_PORT=$local_runtime_livekit_port
+VGPR_LOCAL_LIVEKIT_UDP_RANGE_START=$local_runtime_livekit_udp_range_start
+VGPR_LOCAL_LIVEKIT_UDP_RANGE_END=$local_runtime_livekit_udp_range_end
+LIVEKIT_KEYS=$SESSIOND_LIVEKIT_API_KEY: $SESSIOND_LIVEKIT_API_SECRET
+EOF
+}
+
+render_env_template() {
+  local template_path=$1
+  local output_path=$2
+
+  node --input-type=module -e '
+    import fs from "node:fs";
+
+    const [templatePath, outputPath] = process.argv.slice(1);
+    let content = fs.readFileSync(templatePath, "utf8");
+    content = content.replace(/\$\{([A-Z0-9_]+)\}/g, (_, key) => {
+      const value = process.env[key];
+      if (value === undefined) {
+        throw new Error(`missing template variable ${key}`);
+      }
+      return value;
+    });
+    fs.writeFileSync(outputPath, content);
+  ' "$template_path" "$output_path"
+}
+
+compose() {
+  docker compose \
+    --env-file "$compose_env_path" \
+    --project-name "$compose_project_name" \
+    -f "$deploy_local_dir/compose.yaml" \
+    "$@"
+}
+
+compose_service_running() {
+  local service=$1
+  local running_services
+
+  running_services=$(compose ps --status running --services 2>/dev/null || true)
+  while IFS= read -r running_service; do
+    if [[ "$running_service" == "$service" ]]; then
+      return 0
+    fi
+  done <<<"$running_services"
+
+  return 1
+}
+
+snapshot_livekit_logs() {
+  compose logs --no-color livekit >"$(log_file_for livekit)" 2>&1 || true
+}
+
+print_local_runtime_urls() {
+  printf 'control app : %s\n' "$local_runtime_control_app_url"
+  printf 'session app : %s\n' "$local_runtime_session_app_url"
+  printf 'control api : %s\n' "$local_runtime_control_api_origin"
+  printf 'sessiond    : %s\n' "$local_runtime_sessiond_base_url"
+  printf 'livekit ws  : %s\n' "$local_runtime_livekit_ws_url"
+}

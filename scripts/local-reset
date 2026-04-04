@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+force=false
+case "${1:-}" in
+  "") ;;
+  --force) force=true ;;
+  -h|--help)
+    cat <<'EOF'
+Usage:
+  ./scripts/local-reset [--force]
+
+Stop the core VGPR local runtime and delete its disposable .vgpr/local/ state, logs, artifacts, and generated config.
+EOF
+    exit 0
+    ;;
+  *)
+    printf 'unknown flag: %s\n' "$1" >&2
+    exit 2
+    ;;
+esac
+
+source "$(dirname "$0")/local-runtime-common"
+
+if [[ "$force" != true ]]; then
+  if [[ ! -t 0 ]]; then
+    printf 'local-reset needs --force when stdin is not a TTY\n' >&2
+    exit 2
+  fi
+
+  read -r -p "Delete disposable local runtime data under $vgpr_local_root? [y/N] " reply
+  case "$reply" in
+    y|Y|yes|YES) ;;
+    *)
+      printf 'local reset cancelled\n'
+      exit 1
+      ;;
+  esac
+fi
+
+"$repo_root/scripts/local-down"
+rm -rf "$vgpr_local_root"
+
+printf 'removed %s\n' "$vgpr_local_root"

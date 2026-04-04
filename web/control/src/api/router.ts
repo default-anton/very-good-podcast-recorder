@@ -2,6 +2,7 @@ import { withCors } from "./http/cors";
 import { allowedMethodsForRoute, matchApiRoute, type ApiRoute } from "./http/routes";
 import { errorResponse } from "./http/response";
 import { handleBootstrapRoute } from "./routes/bootstrap";
+import { handleHealthRoute } from "./routes/health";
 import { handleSeatRoute, handleSeatsRoute } from "./routes/seats";
 import { handleSessionRoute } from "./routes/session";
 
@@ -10,6 +11,10 @@ export async function routeApiRequest(request: Request) {
 
   if (!url.pathname.startsWith("/api/")) {
     return null;
+  }
+
+  if (url.pathname === "/api/healthz") {
+    return handleHealthRoute(request, url);
   }
 
   const route = matchApiRoute(url.pathname);

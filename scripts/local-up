@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'EOF'
+Usage:
+  ./scripts/local-up
+
+Bring up the core VGPR local runtime and wait for the app, control API, sessiond, and LiveKit endpoints to answer.
+EOF
+  exit 0
+fi
+
+source "$(dirname "$0")/local-runtime-common"
+
+require_local_runtime_prereqs
+load_local_runtime_env
+load_local_runtime_topology
+ensure_local_runtime_dirs
+write_livekit_runtime_assets
+
+control_app_was_running=false
+session_app_was_running=false
+sessiond_was_running=false
+livekit_was_running=false
+startup_complete=false
+
+if managed_process_running "control-app"; then
+  control_app_was_running=true
+fi
+if managed_process_running "session-app"; then
+  session_app_was_running=true
+fi
+if managed_process_running "sessiond"; then
+  sessiond_was_running=true
+fi
+if compose_service_running "livekit"; then
+  livekit_was_running=true
+fi
+
+cleanup_startup_failure() {
+  if [[ "$startup_complete" == true ]]; then
+    return 0
+  fi
+
+  if [[ "$sessiond_was_running" != true ]]; then
+    stop_managed_process "sessiond"
+  fi
+  if [[ "$session_app_was_running" != true ]]; then
+    stop_managed_process "session-app"
+  fi
+  if [[ "$control_app_was_running" != true ]]; then
+    stop_managed_process "control-app"
+  fi
+  if [[ "$livekit_was_running" != true ]]; then
+    compose down --remove-orphans >/dev/null 2>&1 || true
+  fi
+}
+
+trap cleanup_startup_failure EXIT
+
+require_managed_process_ports_available "control-app" "$local_runtime_control_app_port" "$local_runtime_control_api_port"
+require_managed_process_ports_available "session-app" "$local_runtime_session_app_port"
+require_managed_process_ports_available "sessiond" "$local_runtime_sessiond_port"
+
+compose up -d livekit >/dev/null
+start_managed_process "control-app" "exec mise exec -- pnpm exec vite --config web/control/vite.config.ts"
+start_managed_process "session-app" "exec mise exec -- pnpm exec vite --config web/session/vite.config.ts"
+start_managed_process \
+  "sessiond" \
+  "export SESSIOND_LISTEN_ADDR=$(printf '%q' "${local_runtime_default_host}:${local_runtime_sessiond_port}"); export SESSIOND_ARTIFACT_ROOT=$(printf '%q' "$(sessiond_artifact_root)"); export SESSIOND_SQLITE_PATH=$(printf '%q' "$(sessiond_sqlite_path)"); exec mise exec -- go run ./cmd/sessiond"
+
+wait_for_http_probe "control app" "${local_runtime_control_app_url}/" "<title>VGPR Control</title>" "control-app" "control-app"
+wait_for_json_field_equals "control api" "${local_runtime_control_api_origin}/api/healthz" '.app' "control-api" "control-app" "control-app"
+wait_for_json_field_equals "sessiond" "${local_runtime_sessiond_base_url}/readyz" '.status' "ready" "sessiond" "sessiond"
+wait_for_http_probe "session app" "${local_runtime_session_app_url}/" "<title>VGPR Session</title>" "session-app" "session-app"
+wait_for_http_probe "livekit" "${local_runtime_livekit_http_url}/" "OK" "livekit" ""
+snapshot_livekit_logs
+startup_complete=true
+trap - EXIT
+
+printf 'local runtime is up\n'
+print_local_runtime_urls
+printf 'logs       : %s\n' "$vgpr_local_logs_dir"
+printf 'smoke      : mise exec -- ./scripts/local-smoke\n'

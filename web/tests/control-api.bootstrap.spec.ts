@@ -15,6 +15,23 @@ import { jsonRequest, provisionLocalSession, requestControl } from "./control-ap
 const localSessionAppOrigin = getLocalSessionAppOrigin();
 
 describe("control-plane local API bootstrap", () => {
+  it("exposes a stable control API health marker for runtime readiness checks", async () => {
+    const response = await requestControl("/api/healthz");
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      app: "control-api",
+      runtime: {
+        controlApiOrigin: "http://127.0.0.1:8080",
+        controlAppOrigin: "http://127.0.0.1:5173",
+        liveKitUrl: "ws://127.0.0.1:7880",
+        sessionAppOrigin: "http://127.0.0.1:5174",
+        sessiondBaseUrl: "http://127.0.0.1:8081",
+      },
+      status: "ok",
+    });
+  });
+
   it("returns bootstrap data for a provisioned session and valid join key", async () => {
     const sessionId = "bootstrap-proof-01";
     const sessionPath = createSessionApiPath(sessionId);

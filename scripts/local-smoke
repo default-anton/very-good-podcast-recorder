@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'EOF'
+Usage:
+  ./scripts/local-smoke
+
+Probe the core VGPR local runtime, emit a text summary, and write .vgpr/local/e2e/local-smoke.json.
+EOF
+  exit 0
+fi
+
+source "$(dirname "$0")/local-runtime-common"
+
+require_local_runtime_prereqs
+load_local_runtime_env
+load_local_runtime_topology
+ensure_local_runtime_dirs
+write_livekit_runtime_assets
+snapshot_livekit_logs
+
+work_dir=$(mktemp -d)
+trap 'rm -rf "$work_dir"' EXIT
+
+control_app_status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "${local_runtime_control_app_url}/" 2>/dev/null || true)
+session_app_status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "${local_runtime_session_app_url}/" 2>/dev/null || true)
+livekit_status=$(curl -s -o "$work_dir/livekit.txt" -w '%{http_code}' --max-time 5 "${local_runtime_livekit_http_url}/" 2>/dev/null || true)
+sessiond_health_status=$(curl -s -o "$work_dir/sessiond-health.json" -w '%{http_code}' --max-time 5 "${local_runtime_sessiond_base_url}/healthz" 2>/dev/null || true)
+sessiond_ready_status=$(curl -s -o "$work_dir/sessiond-ready.json" -w '%{http_code}' --max-time 5 "${local_runtime_sessiond_base_url}/readyz" 2>/dev/null || true)
+control_api_status=$(curl -s -o "$work_dir/control-session.json" -w '%{http_code}' --max-time 5 -X PUT -H 'Accept: application/json' "${local_runtime_control_api_origin}/api/v1/sessions/${SESSIOND_SESSION_ID}" 2>/dev/null || true)
+session_picker_status=$(curl -s -o "$work_dir/session-picker.json" -w '%{http_code}' --max-time 5 -X POST -H 'Content-Type: application/json' -d "$(jq -cn --arg session_id "$SESSIOND_SESSION_ID" --arg role guest --arg join_key "$SESSIOND_BOOTSTRAP_GUEST_JOIN_KEY" '{session_id:$session_id, role:$role, join_key:$join_key}')" "${local_runtime_sessiond_base_url}/api/v1/join/seat-picker" 2>/dev/null || true)
+
+control_api_body_json=$(jq -c . "$work_dir/control-session.json" 2>/dev/null || printf 'null')
+sessiond_health_body_json=$(jq -c . "$work_dir/sessiond-health.json" 2>/dev/null || printf 'null')
+sessiond_ready_body_json=$(jq -c . "$work_dir/sessiond-ready.json" 2>/dev/null || printf 'null')
+session_picker_body_json=$(jq -c . "$work_dir/session-picker.json" 2>/dev/null || printf 'null')
+livekit_body=$(cat "$work_dir/livekit.txt" 2>/dev/null || true)
+
+host_join_url=$(jq -r '.session.links.host // empty' "$work_dir/control-session.json" 2>/dev/null || true)
+guest_join_url=$(jq -r '.session.links.guest // empty' "$work_dir/control-session.json" 2>/dev/null || true)
+control_runtime_base_url=$(jq -r '.runtime.baseUrl // empty' "$work_dir/control-session.json" 2>/dev/null || true)
+control_runtime_livekit_url=$(jq -r '.runtime.liveKitUrl // empty' "$work_dir/control-session.json" 2>/dev/null || true)
+sessiond_ready_state=$(jq -r '.status // empty' "$work_dir/sessiond-ready.json" 2>/dev/null || true)
+sessiond_health_state=$(jq -r '.status // empty' "$work_dir/sessiond-health.json" 2>/dev/null || true)
+seat_picker_count=$(jq -r '(.seats // []) | length' "$work_dir/session-picker.json" 2>/dev/null || printf '0')
+expected_guest_seat_count=$(jq '[.[] | select(.role == "guest")] | length' <<<"$SESSIOND_BOOTSTRAP_SEATS_JSON")
+
+control_runtime_matches_topology=false
+if [[ "$control_runtime_base_url" == "$local_runtime_sessiond_base_url" && "$control_runtime_livekit_url" == "$local_runtime_livekit_ws_url" ]]; then
+  control_runtime_matches_topology=true
+fi
+
+join_urls_match_session_app=false
+if [[ "$host_join_url" == "${local_runtime_session_app_url}/join/${SESSIOND_SESSION_ID}/host"* && "$guest_join_url" == "${local_runtime_session_app_url}/join/${SESSIOND_SESSION_ID}/guest"* ]]; then
+  join_urls_match_session_app=true
+fi
+
+seat_picker_matches_bootstrap=false
+if [[ "$session_picker_status" == "200" && "$seat_picker_count" == "$expected_guest_seat_count" ]]; then
+  seat_picker_matches_bootstrap=true
+fi
+
+livekit_healthy=false
+if [[ "$livekit_status" == "200" && "$livekit_body" == "OK" ]]; then
+  livekit_healthy=true
+fi
+
+overall_status="ready"
+if [[ "$control_app_status" != "200" || "$session_app_status" != "200" || "$livekit_healthy" != true || "$sessiond_health_status" != "200" || "$sessiond_ready_status" != "200" || "$sessiond_ready_state" != "ready" || "$control_api_status" != "200" || "$control_runtime_matches_topology" != true || "$join_urls_match_session_app" != true || "$seat_picker_matches_bootstrap" != true ]]; then
+  overall_status="degraded"
+fi
+
+jq -n \
+  --arg generated_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --arg status "$overall_status" \
+  --arg session_id "$SESSIOND_SESSION_ID" \
+  --arg control_app_url "$local_runtime_control_app_url" \
+  --arg session_app_url "$local_runtime_session_app_url" \
+  --arg control_api_origin "$local_runtime_control_api_origin" \
+  --arg sessiond_base_url "$local_runtime_sessiond_base_url" \
+  --arg livekit_http_url "$local_runtime_livekit_http_url" \
+  --arg livekit_ws_url "$local_runtime_livekit_ws_url" \
+  --arg host_join_url "$host_join_url" \
+  --arg guest_join_url "$guest_join_url" \
+  --arg control_app_http_status "$control_app_status" \
+  --arg session_app_http_status "$session_app_status" \
+  --arg control_api_http_status "$control_api_status" \
+  --arg livekit_http_status "$livekit_status" \
+  --arg livekit_body "$livekit_body" \
+  --arg sessiond_health_http_status "$sessiond_health_status" \
+  --arg sessiond_ready_http_status "$sessiond_ready_status" \
+  --arg sessiond_health_state "$sessiond_health_state" \
+  --arg sessiond_ready_state "$sessiond_ready_state" \
+  --arg session_picker_http_status "$session_picker_status" \
+  --argjson control_api_body "$control_api_body_json" \
+  --argjson sessiond_health_body "$sessiond_health_body_json" \
+  --argjson sessiond_ready_body "$sessiond_ready_body_json" \
+  --argjson session_picker_body "$session_picker_body_json" \
+  --argjson control_runtime_matches_topology "$control_runtime_matches_topology" \
+  --argjson join_urls_match_session_app "$join_urls_match_session_app" \
+  --argjson seat_picker_matches_bootstrap "$seat_picker_matches_bootstrap" \
+  --argjson expected_guest_seat_count "$expected_guest_seat_count" \
+  --argjson seat_picker_count "$seat_picker_count" \
+  --argjson livekit_healthy "$livekit_healthy" \
+  '{
+    generated_at: $generated_at,
+    status: $status,
+    session_id: $session_id,
+    urls: {
+      control_app: $control_app_url,
+      session_app: $session_app_url,
+      control_api: $control_api_origin,
+      sessiond: $sessiond_base_url,
+      livekit_http: $livekit_http_url,
+      livekit_ws: $livekit_ws_url,
+      host_join: $host_join_url,
+      guest_join: $guest_join_url
+    },
+    services: {
+      control_app: {
+        http_status: ($control_app_http_status | tonumber),
+        status: (if $control_app_http_status == "200" then "ok" else "error" end)
+      },
+      session_app: {
+        http_status: ($session_app_http_status | tonumber),
+        status: (if $session_app_http_status == "200" then "ok" else "error" end)
+      },
+      control_api: {
+        http_status: ($control_api_http_status | tonumber),
+        status: (if $control_api_http_status == "200" and $control_runtime_matches_topology and $join_urls_match_session_app then "ok" else "error" end),
+        runtime_matches_topology: $control_runtime_matches_topology,
+        join_urls_match_session_app: $join_urls_match_session_app,
+        body: $control_api_body
+      },
+      sessiond_health: {
+        http_status: ($sessiond_health_http_status | tonumber),
+        status: $sessiond_health_state,
+        body: $sessiond_health_body
+      },
+      sessiond_ready: {
+        http_status: ($sessiond_ready_http_status | tonumber),
+        status: $sessiond_ready_state,
+        body: $sessiond_ready_body
+      },
+      sessiond_seat_picker: {
+        http_status: ($session_picker_http_status | tonumber),
+        status: (if $session_picker_http_status == "200" and $seat_picker_matches_bootstrap then "ok" else "error" end),
+        expected_guest_seat_count: $expected_guest_seat_count,
+        seat_count: $seat_picker_count,
+        matches_bootstrap: $seat_picker_matches_bootstrap,
+        body: $session_picker_body
+      },
+      livekit: {
+        http_status: ($livekit_http_status | tonumber),
+        status: (if $livekit_healthy then "ok" else "error" end),
+        body: $livekit_body
+      }
+    }
+  }' >"$local_smoke_summary_path"
+
+printf 'VGPR local runtime smoke: %s\n' "$overall_status"
+printf 'control app  : %s (%s)\n' "$control_app_status" "$local_runtime_control_app_url"
+printf 'session app  : %s (%s)\n' "$session_app_status" "$local_runtime_session_app_url"
+printf 'control api  : %s runtime=%s join_urls=%s\n' "$control_api_status" "$control_runtime_matches_topology" "$join_urls_match_session_app"
+printf 'sessiond     : health=%s ready=%s (%s)\n' "$sessiond_health_state" "$sessiond_ready_state" "$local_runtime_sessiond_base_url"
+printf 'seat picker  : %s seats=%s/%s\n' "$session_picker_status" "$seat_picker_count" "$expected_guest_seat_count"
+printf 'livekit      : %s (%s)\n' "$livekit_status" "$local_runtime_livekit_http_url"
+printf 'host join    : %s\n' "$host_join_url"
+printf 'guest join   : %s\n' "$guest_join_url"
+printf 'summary json : %s\n' "$local_smoke_summary_path"
+
+if [[ "$overall_status" != "ready" ]]; then
+  exit 1
+fi

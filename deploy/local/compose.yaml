@@ -1,0 +1,15 @@
+name: vgpr-local
+
+services:
+  livekit:
+    image: livekit/livekit-server:v1.9.12
+    command:
+      - --config
+      - /etc/livekit/livekit.yaml
+    env_file:
+      - ../../.vgpr/local/config/compose.env
+    ports:
+      - "${VGPR_LOCAL_DEFAULT_HOST}:${VGPR_LOCAL_LIVEKIT_PORT}:${VGPR_LOCAL_LIVEKIT_PORT}"
+      - "${VGPR_LOCAL_DEFAULT_HOST}:${VGPR_LOCAL_LIVEKIT_UDP_RANGE_START}-${VGPR_LOCAL_LIVEKIT_UDP_RANGE_END}:${VGPR_LOCAL_LIVEKIT_UDP_RANGE_START}-${VGPR_LOCAL_LIVEKIT_UDP_RANGE_END}/udp"
+    volumes:
+      - ../../.vgpr/local/config/livekit.yaml:/etc/livekit/livekit.yaml:ro

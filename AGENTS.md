@@ -3,9 +3,11 @@
 very-good-podcast-recorder is an open-source remote podcast recorder: browser-based session joining via URL, local per-participant tracks, a temporary session server, and host-controlled recording files and workflow.
 
 `docs/README.md` is the docs map and source-of-truth index for the rest of `docs/`.
+`docs/alpha-scope.md` is the current implementation target and cut line.
 `docs/implementation-status.md` owns the temporary convention for marking which spec docs and sections are implemented.
 
 If you need a spec or are updating docs, start with `docs/README.md` and follow the owning doc.
+Treat `docs/epics/*.md` as execution plans only; they do not override the owning specs.
 If you are making architecture, infrastructure, or stack decisions, read `docs/architecture.md` first.
 If you are changing join/session/recording/upload/reconnect flows or the test harness around them, read `docs/testing.md` first.
 If you are changing local runtime ports, origins, hostnames, or loopback assumptions, update `deploy/local/topology.json` first and keep code/tests consuming that contract via `web/shared/localRuntime.ts`.

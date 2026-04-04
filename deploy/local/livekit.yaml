@@ -1,0 +1,11 @@
+port: ${VGPR_LOCAL_LIVEKIT_PORT}
+bind_addresses:
+  - 0.0.0.0
+rtc:
+  port_range_start: ${VGPR_LOCAL_LIVEKIT_UDP_RANGE_START}
+  port_range_end: ${VGPR_LOCAL_LIVEKIT_UDP_RANGE_END}
+  use_external_ip: false
+  use_mdns: false
+logging:
+  json: true
+  level: info

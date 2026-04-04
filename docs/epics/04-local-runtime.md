@@ -4,7 +4,7 @@
 
 split into 2 PRs:
 - [done] local runtime topology/config source of truth
-- local runtime compose/config/scripts + smoke output
+- [done] local runtime compose/config/scripts + smoke output
 
 Related docs:
 
