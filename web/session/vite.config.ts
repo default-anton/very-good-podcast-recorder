@@ -4,6 +4,12 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
+import {
+  getLocalControlApiOrigin,
+  localRuntimeDefaultHost,
+  localRuntimePorts,
+} from "../shared/localRuntime";
+
 const root = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
@@ -11,12 +17,12 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   root,
   server: {
-    host: "127.0.0.1",
-    port: 5174,
+    host: localRuntimeDefaultHost,
+    port: localRuntimePorts.sessionApp,
     proxy: {
       "/api": {
         changeOrigin: true,
-        target: "http://127.0.0.1:5173",
+        target: getLocalControlApiOrigin(),
       },
     },
     strictPort: true,

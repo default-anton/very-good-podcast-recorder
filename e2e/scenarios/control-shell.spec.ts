@@ -1,7 +1,12 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
-test.use({ baseURL: "http://127.0.0.1:5173" });
+import { getLocalControlAppOrigin, getLocalSessionAppOrigin } from "../../web/shared/localRuntime";
+
+const localControlAppOrigin = getLocalControlAppOrigin();
+const localSessionAppOrigin = getLocalSessionAppOrigin();
+
+test.use({ baseURL: localControlAppOrigin });
 
 for (const viewport of [
   { height: 1024, name: "narrow tablet", width: 768 },
@@ -25,7 +30,7 @@ test("rapid host mic toggles stay ordered against the latest session snapshot", 
   page,
 }) => {
   const sessionId = "rapid-mic-proof-01";
-  const sessionPath = `http://127.0.0.1:5173/api/v1/sessions/${encodeURIComponent(sessionId)}`;
+  const sessionPath = `${localControlAppOrigin}/api/v1/sessions/${encodeURIComponent(sessionId)}`;
 
   await openRoomShell(page, sessionId);
   await page.evaluate(() => {
@@ -77,11 +82,11 @@ test("setup fields roll back to canonical session state after a rejected edit", 
   page,
 }) => {
   const sessionId = "setup-rollback-proof-01";
-  const sessionPath = `http://127.0.0.1:5173/api/v1/sessions/${encodeURIComponent(sessionId)}`;
+  const sessionPath = `${localControlAppOrigin}/api/v1/sessions/${encodeURIComponent(sessionId)}`;
 
   await page.goto(`/sessions/${sessionId}`);
   await expect(roleLinkUrl(page, "host")).toContainText(
-    new RegExp(`^http://127\\.0\\.0\\.1:5174/join/${sessionId}/host\\?k=local-host-`),
+    new RegExp(`^${escapeRegExp(localSessionAppOrigin)}/join/${sessionId}/host\\?k=local-host-`),
   );
 
   const activatedSession = await page.request.fetch(sessionPath, {
@@ -113,7 +118,9 @@ test("copy link reports failure when clipboard access is unavailable", async ({ 
 
   await page.goto("/");
   await expect(roleLinkUrl(page, "host")).toContainText(
-    /^http:\/\/127\.0\.0\.1:5174\/join\/amber-session-01\/host\?k=local-host-/,
+    new RegExp(
+      `^${escapeRegExp(localSessionAppOrigin)}/join/amber-session-01/host\\?k=local-host-`,
+    ),
   );
   await page.getByRole("button", { name: "Copy" }).first().click();
 
@@ -200,14 +207,14 @@ test("session state follows client-side navigation to a different session id", a
   const routeAHostLink = roleLinkUrl(page, "host");
 
   await expect(routeAHostLink).toContainText(
-    /^http:\/\/127\.0\.0\.1:5174\/join\/route-a\/host\?k=local-host-/,
+    new RegExp(`^${escapeRegExp(localSessionAppOrigin)}/join/route-a/host\\?k=local-host-`),
   );
 
   await navigateWithinSpa(page, "/sessions/route-b");
 
   await expect(page).toHaveURL(/\/sessions\/route-b$/);
   await expect(roleLinkUrl(page, "host")).toContainText(
-    /^http:\/\/127\.0\.0\.1:5174\/join\/route-b\/host\?k=local-host-/,
+    new RegExp(`^${escapeRegExp(localSessionAppOrigin)}/join/route-b/host\\?k=local-host-`),
   );
   await expect(roleLinkUrl(page, "host")).not.toContainText("/join/route-a/host?");
   await expect(page.getByLabel("Session title")).toHaveValue("Late Night Tape Check");
@@ -245,4 +252,8 @@ async function pageHasHorizontalOverflow(page: Page) {
   return page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   );
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

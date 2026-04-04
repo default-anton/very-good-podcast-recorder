@@ -1,7 +1,9 @@
+import { getLocalControlAppOrigin } from "../../../../shared/localRuntime";
+
 import type { ControlSession, Seat } from "./types";
 import { createSessionLinks } from "./session-links";
 
-export const DEFAULT_CONTROL_APP_ORIGIN = "http://127.0.0.1:5173";
+export const DEFAULT_CONTROL_APP_ORIGIN = getLocalControlAppOrigin();
 export const DEFAULT_SESSION_ID = "amber-session-01";
 export const HOST_SEAT_ID = "seat-host-01";
 export const MIC_OPTIONS = ["Studio USB", "Boom Mic", "USB Backup"];

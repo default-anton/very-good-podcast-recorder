@@ -9,7 +9,9 @@ playwright-report/
 test-results/
 coverage/
 web/control/.vite-control/
+web/control/dist/
 web/session/.vite-session/
+web/session/dist/
 *.pem
 *.key
 *.p12

@@ -1,4 +1,8 @@
 import type { JoinLinkRole } from "../../../../shared/joinLinks";
+import {
+  getLocalControlApiOrigin,
+  resolveLocalControlApiOrigin,
+} from "../../../../shared/localRuntime";
 
 import type { ControlSession, Seat } from "./types";
 
@@ -182,7 +186,10 @@ function resolveApiUrl(path: string) {
     return path;
   }
 
-  const baseUrl = typeof window === "undefined" ? "http://127.0.0.1:5173" : window.location.origin;
+  const baseUrl =
+    typeof window === "undefined"
+      ? getLocalControlApiOrigin()
+      : resolveLocalControlApiOrigin(window.location.origin);
 
   return new URL(path, baseUrl).toString();
 }

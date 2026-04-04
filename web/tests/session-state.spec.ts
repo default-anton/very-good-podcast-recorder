@@ -5,6 +5,7 @@ import {
   presentSession,
   sessionAppReducer,
 } from "../session/src/app/lib/sessionState";
+import { getLocalLiveKitUrl, getLocalSessiondBaseUrl } from "../shared/localRuntime";
 import type { SessionBootstrapResponse } from "../session/src/app/lib/query";
 import type { JoinRole, SessionSeat } from "../session/src/app/lib/types";
 
@@ -61,8 +62,8 @@ describe("session shell state", () => {
     const state = createInitialAppState({
       bootstrap: {
         runtime: {
-          baseUrl: "http://127.0.0.1:8081",
-          liveKitUrl: "ws://127.0.0.1:7880",
+          baseUrl: getLocalSessiondBaseUrl(),
+          liveKitUrl: getLocalLiveKitUrl(),
           roomName: "bootstrap-shell-proof-01",
           state: "ready",
           turn: null,

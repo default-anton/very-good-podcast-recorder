@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ControlSessionResponse } from "../control/src/app/lib/api";
 import { controlQueryKeys } from "../control/src/app/lib/query";
+import { getLocalLiveKitUrl, getLocalSessiondBaseUrl } from "../shared/localRuntime";
 import {
   getCachedControlSession,
   patchControlSeatResponse,
@@ -41,8 +42,8 @@ describe("control session contract cache", () => {
 function createResponse(sessionId: string): ControlSessionResponse {
   return {
     runtime: {
-      baseUrl: "http://127.0.0.1:8081",
-      liveKitUrl: "ws://127.0.0.1:7880",
+      baseUrl: getLocalSessiondBaseUrl(),
+      liveKitUrl: getLocalLiveKitUrl(),
       roomName: sessionId,
       state: "ready",
       turn: null,

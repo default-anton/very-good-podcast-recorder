@@ -1,6 +1,10 @@
 import { QueryClient, queryOptions } from "@tanstack/react-query";
 
 import type { JoinLinkRole } from "../../../../shared/joinLinks";
+import {
+  getLocalControlApiOrigin,
+  resolveLocalControlApiOrigin,
+} from "../../../../shared/localRuntime";
 
 export interface SessionBootstrapResponse {
   runtime: {
@@ -123,7 +127,10 @@ function resolveApiUrl(path: string) {
     return path;
   }
 
-  const baseUrl = typeof window === "undefined" ? "http://127.0.0.1:5174" : window.location.origin;
+  const baseUrl =
+    typeof window === "undefined"
+      ? getLocalControlApiOrigin()
+      : resolveLocalControlApiOrigin(window.location.origin);
 
   return new URL(path, baseUrl).toString();
 }

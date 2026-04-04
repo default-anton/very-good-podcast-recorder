@@ -7,6 +7,10 @@ import type {
 import { createGuestSeat, createInitialSession } from "../app/lib/session-fixtures";
 import { type SessionJoinKeys, withSessionLinks } from "../app/lib/session-links";
 import {
+  createLocalRuntimeTopology,
+  resolveLocalSessionAppOrigin,
+} from "../../../shared/localRuntime";
+import {
   normalizeControlSession,
   patchSessionSeat,
   removeSessionSeat,
@@ -205,9 +209,19 @@ function toControlSessionResponse(
   record: StoredSessionRecord,
   origin: string,
 ): ControlSessionResponse {
+  const topology = createLocalRuntimeTopology(new URL(origin).hostname);
+
   return {
-    runtime: record.runtime,
-    session: withSessionLinks(record.session, resolveJoinAppOrigin(origin), record.joinKeys),
+    runtime: {
+      ...record.runtime,
+      baseUrl: topology.sessiondBaseUrl,
+      liveKitUrl: topology.liveKitUrl,
+    },
+    session: withSessionLinks(
+      record.session,
+      resolveLocalSessionAppOrigin(origin),
+      record.joinKeys,
+    ),
   };
 }
 
@@ -219,26 +233,17 @@ function createStoredSessionRecord(sessionId: string): StoredSessionRecord {
   };
 }
 
-function createLocalRuntimeDescriptor(sessionId: string): SessionRuntimeDescriptor {
+function createLocalRuntimeDescriptor(
+  sessionId: string,
+  hostname?: string | null,
+): SessionRuntimeDescriptor {
+  const topology = createLocalRuntimeTopology(hostname);
+
   return {
-    baseUrl: "http://127.0.0.1:8081",
-    liveKitUrl: "ws://127.0.0.1:7880",
+    baseUrl: topology.sessiondBaseUrl,
+    liveKitUrl: topology.liveKitUrl,
     roomName: sessionId,
     state: "ready",
     turn: null,
   };
-}
-
-function resolveJoinAppOrigin(controlOrigin: string) {
-  const url = new URL(controlOrigin);
-
-  if (url.hostname === "127.0.0.1" && url.port === "5173") {
-    return "http://127.0.0.1:5174";
-  }
-
-  if (url.hostname === "localhost" && url.port === "5173") {
-    return "http://localhost:5174";
-  }
-
-  return controlOrigin;
 }

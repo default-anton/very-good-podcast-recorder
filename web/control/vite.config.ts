@@ -1,21 +1,30 @@
-import type { IncomingMessage } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { fileURLToPath } from "node:url";
 
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 
+import {
+  getLocalControlApiOrigin,
+  getLocalControlAppOrigin,
+  localRuntimeDefaultHost,
+  localRuntimePorts,
+} from "../shared/localRuntime";
+
 import worker from "./src/worker";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
+const localControlApiHost = new URL(getLocalControlApiOrigin()).host;
+const localControlAppHost = new URL(getLocalControlAppOrigin()).host;
 
 export default defineConfig({
   cacheDir: ".vite-control",
   plugins: [react(), tailwindcss(), controlApiPlugin()],
   root,
   server: {
-    host: "127.0.0.1",
-    port: 5173,
+    host: localRuntimeDefaultHost,
+    port: localRuntimePorts.controlApp,
     strictPort: true,
   },
 });
@@ -23,6 +32,29 @@ export default defineConfig({
 function controlApiPlugin(): Plugin {
   return {
     configureServer(server) {
+      const sidecarServer = createServer((req, res) => {
+        void respondWithControlApi(req, res, localControlApiHost).catch((error) => {
+          server.config.logger.error(`control API sidecar failed: ${String(error)}`);
+
+          if (!res.headersSent) {
+            res.statusCode = 500;
+          }
+          res.end();
+        });
+      });
+
+      sidecarServer.once("error", (error) => {
+        server.config.logger.error(
+          `control API sidecar could not listen on http://${localControlApiHost}: ${String(error)}`,
+        );
+        process.exitCode = 1;
+        process.kill(process.pid, "SIGTERM");
+      });
+      sidecarServer.listen(localRuntimePorts.controlApi, localRuntimeDefaultHost);
+      server.httpServer?.once("close", () => {
+        sidecarServer.close();
+      });
+
       server.middlewares.use(async (req, res, next) => {
         if (req.url === undefined || !req.url.startsWith("/api/")) {
           next();
@@ -30,27 +62,7 @@ function controlApiPlugin(): Plugin {
         }
 
         try {
-          const request = new Request(
-            new URL(req.url, `http://${req.headers.host ?? "127.0.0.1:5173"}`),
-            {
-              body: await readRequestBody(req),
-              headers: createHeaders(req.headers),
-              method: req.method,
-            },
-          );
-          const response = await worker.fetch(request);
-
-          res.statusCode = response.status;
-          response.headers.forEach((value, key) => {
-            res.setHeader(key, value);
-          });
-
-          if (response.body === null) {
-            res.end();
-            return;
-          }
-
-          res.end(Buffer.from(await response.arrayBuffer()));
+          await respondWithControlApi(req, res, localControlAppHost);
         } catch (error) {
           next(error);
         }
@@ -58,6 +70,34 @@ function controlApiPlugin(): Plugin {
     },
     name: "control-api",
   };
+}
+
+async function respondWithControlApi(
+  req: IncomingMessage,
+  res: ServerResponse,
+  fallbackHost: string,
+) {
+  const request = new Request(
+    new URL(req.url ?? "/", `http://${req.headers.host ?? fallbackHost}`),
+    {
+      body: await readRequestBody(req),
+      headers: createHeaders(req.headers),
+      method: req.method,
+    },
+  );
+  const response = await worker.fetch(request);
+
+  res.statusCode = response.status;
+  response.headers.forEach((value, key) => {
+    res.setHeader(key, value);
+  });
+
+  if (response.body === null) {
+    res.end();
+    return;
+  }
+
+  res.end(Buffer.from(await response.arrayBuffer()));
 }
 
 function createHeaders(source: Record<string, string | string[] | undefined>) {

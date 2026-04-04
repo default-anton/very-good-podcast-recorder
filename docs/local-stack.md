@@ -59,7 +59,7 @@ Rules:
 - `edge` exists only when working on networking or TURN-sensitive flows
 - do **not** require Caddy or TURN in the normal `core` loop
 
-## env and config
+## env and config [done]
 
 For repo-local boot, precedence is: flags > shell env > `.env.local` > built-in defaults.
 
@@ -69,9 +69,13 @@ For repo-local boot, precedence is: flags > shell env > `.env.local` > built-in 
 | committed local stack assets | `deploy/local/` |
 | generated local service config | `.vgpr/local/config/` |
 
+`deploy/local/topology.json` is the committed source of truth for local hostnames and ports.
+
+App and test code should import that contract through `web/shared/localRuntime.ts` instead of hard-coding new loopback literals.
+
 Keep secrets out of committed files.
 
-## port map
+## port map [done]
 
 Bind TCP listeners to `127.0.0.1` by default.
 

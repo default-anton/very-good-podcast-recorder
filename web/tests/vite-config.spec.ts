@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import controlConfig from "../control/vite.config";
 import sessionConfig from "../session/vite.config";
+import { getLocalControlApiOrigin, localRuntimePorts } from "../shared/localRuntime";
 
 const testsDir = fileURLToPath(new URL(".", import.meta.url));
 
@@ -22,12 +23,17 @@ describe("vite config", () => {
     expect(sessionConfig.cacheDir).toBe(".vite-session");
   });
 
-  it("proxies session bootstrap API requests to the control app in local dev", () => {
+  it("proxies session bootstrap API requests to the control API in local dev", () => {
     expect(sessionConfig.server?.proxy).toEqual({
       "/api": {
         changeOrigin: true,
-        target: "http://127.0.0.1:5173",
+        target: getLocalControlApiOrigin(),
       },
     });
+  });
+
+  it("pins the control and session ports to the shared local runtime contract", () => {
+    expect(controlConfig.server?.port).toBe(localRuntimePorts.controlApp);
+    expect(sessionConfig.server?.port).toBe(localRuntimePorts.sessionApp);
   });
 });

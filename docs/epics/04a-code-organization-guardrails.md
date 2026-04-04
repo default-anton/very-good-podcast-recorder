@@ -30,7 +30,7 @@ Do the minimum structural work needed before more runtime and harness complexity
 - stop `web/control/src/api/**` from depending on `web/control/src/app/lib/**` for core API/domain ownership
 - split `web/session/src/app/lib/sessionState.ts` by seam so bootstrap shaping, reducer actions, demo presets, and derived presentation logic do not keep accreting in one file
 - split the next meaningful `internal/sessiond` touch so upload persistence and manifest generation are not forced to keep growing as single large files
-- refresh repo guardrail tests so they assert the current landing zones and the still-deferred trees truthfully
+- replace brittle repo-shape tests with contract-focused checks around shared runtime/config surfaces and module seams
 
 ## non-goals
 
@@ -47,15 +47,14 @@ Do the minimum structural work needed before more runtime and harness complexity
 - `web/control/src/api/**` no longer depends on `web/control/src/app/lib/**` for primary contract ownership
 - `web/session/src/app/lib/sessionState.ts` is split into smaller files aligned to real seams
 - the next touched oversized `internal/sessiond` file is split instead of extended past the current shape
-- repo guardrail tests describe the actual current landing zones and deferred trees
+- shared runtime/config and contract tests cover the moved seams without relying on repo-shape assertions
 
 ## feedback loop
 
 Prove this with focused checks, not a giant regression run:
 
 ```bash
-mise exec -- pnpm exec vitest run web/tests/tooling-harness.spec.ts
-mise exec -- pnpm exec vitest run web/tests/control-*.spec.ts web/tests/session-state.spec.ts
+mise exec -- pnpm exec vitest run web/tests/local-runtime.spec.ts web/tests/control-*.spec.ts web/tests/session-state.spec.ts web/tests/vite-config.spec.ts
 mise exec -- pnpm exec tsgo --noEmit -p web/control/tsconfig.json
 mise exec -- pnpm exec tsgo --noEmit -p web/session/tsconfig.json
 mise exec -- go test ./internal/sessiond ./cmd/sessiond
@@ -71,5 +70,7 @@ The point is to stop two specific failure modes before they spread:
 
 1. UI modules accidentally becoming the source of truth for API/domain contracts
 2. a few already-large files turning into permanent kitchen sinks
+
+Do not bring back repo-shape policing tests for this. Prove behavior and contract ownership instead.
 
 Do this in the same pragmatic style as the rest of the repo: small reviewable moves, each with proof.

@@ -8,8 +8,11 @@ import {
 } from "../control/src/app/lib/api";
 import { controlQueryKeys } from "../control/src/app/lib/query";
 import { buildJoinUrl } from "../shared/joinLinks";
+import { getLocalSessionAppOrigin } from "../shared/localRuntime";
 
 import { jsonRequest, provisionLocalSession, requestControl } from "./control-api.helpers";
+
+const localSessionAppOrigin = getLocalSessionAppOrigin();
 
 describe("control-plane local API bootstrap", () => {
   it("returns bootstrap data for a provisioned session and valid join key", async () => {
@@ -30,10 +33,14 @@ describe("control-plane local API bootstrap", () => {
     expect(missingBootstrap.status).toBe(404);
     expect(provisionedSession.response.status).toBe(200);
     expect(provisionedSession.body.session.links.host).toMatch(
-      /^http:\/\/127\.0\.0\.1:5174\/join\/bootstrap-proof-01\/host\?k=local-host-/,
+      new RegExp(
+        `^${escapeRegExp(localSessionAppOrigin)}/join/bootstrap-proof-01/host\\?k=local-host-`,
+      ),
     );
     expect(provisionedSession.body.session.links.guest).toMatch(
-      /^http:\/\/127\.0\.0\.1:5174\/join\/bootstrap-proof-01\/guest\?k=local-guest-/,
+      new RegExp(
+        `^${escapeRegExp(localSessionAppOrigin)}/join/bootstrap-proof-01/guest\\?k=local-guest-`,
+      ),
     );
     expect(provisionedSession.hostJoinKey).not.toBe("");
     expect(provisionedSession.guestJoinKey).not.toBe("");
@@ -154,8 +161,8 @@ describe("control-plane local API bootstrap", () => {
       "/api/v1/sessions/space%2Fslash%3Fhash%23id/seats/seat%2Fguest%2302",
     );
     expect(createControlSessionPath(sessionId)).toBe("/sessions/space%2Fslash%3Fhash%23id");
-    expect(buildJoinUrl("http://127.0.0.1:5174", sessionId, "guest", "join-key")).toBe(
-      "http://127.0.0.1:5174/join/space%2Fslash%3Fhash%23id/guest?k=join-key",
+    expect(buildJoinUrl(localSessionAppOrigin, sessionId, "guest", "join-key")).toBe(
+      `${localSessionAppOrigin}/join/space%2Fslash%3Fhash%23id/guest?k=join-key`,
     );
   });
 
@@ -165,3 +172,7 @@ describe("control-plane local API bootstrap", () => {
     );
   });
 });
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}

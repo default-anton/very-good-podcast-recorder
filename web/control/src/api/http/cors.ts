@@ -1,4 +1,4 @@
-const LOCAL_SESSION_APP_ORIGINS = new Set(["http://127.0.0.1:5174", "http://localhost:5174"]);
+import { isLocalRuntimeOrigin, localRuntimePorts } from "../../../../shared/localRuntime";
 
 export type CorsPolicy = "bootstrap" | "none" | "session";
 
@@ -56,7 +56,15 @@ function resolveCorsOrigin(request: Request, corsPolicy: Exclude<CorsPolicy, "no
     return origin;
   }
 
-  if (corsPolicy === "bootstrap" && LOCAL_SESSION_APP_ORIGINS.has(origin)) {
+  if (corsPolicy === "bootstrap" && isLocalRuntimeOrigin(origin, localRuntimePorts.sessionApp)) {
+    return origin;
+  }
+
+  if (
+    corsPolicy === "session" &&
+    (isLocalRuntimeOrigin(origin, localRuntimePorts.controlApp) ||
+      isLocalRuntimeOrigin(origin, localRuntimePorts.sessionApp))
+  ) {
     return origin;
   }
 

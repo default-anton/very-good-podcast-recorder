@@ -1,0 +1,21 @@
+{
+  "defaultHost": "127.0.0.1",
+  "loopbackHosts": ["127.0.0.1", "localhost"],
+  "ports": {
+    "controlApp": 5173,
+    "sessionApp": 5174,
+    "controlApi": 8080,
+    "sessiond": 8081,
+    "liveKit": 7880,
+    "caddyHttp": 8088,
+    "caddyHttps": 8443,
+    "coturn": 3478,
+    "coturnTls": 5349
+  },
+  "udpRanges": {
+    "liveKit": {
+      "start": 50000,
+      "end": 50100
+    }
+  }
+}

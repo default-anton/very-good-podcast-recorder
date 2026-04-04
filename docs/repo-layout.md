@@ -21,6 +21,7 @@ That means:
 - keep `web/session/` as the browser session app root
 - let `e2e/` own reality-like harness work
 - add Go runtime, migrations, and deploy assets in predictable top-level homes when the first real slice lands
+- keep layout guidance in docs; do not enforce it with brittle repo-shape tests
 
 Do **not** split repos. Do **not** invent a workspace architecture. Do **not** add placeholder trees just to feel organized.
 
@@ -28,12 +29,14 @@ Do **not** split repos. Do **not** invent a workspace architecture. Do **not** a
 
 ```text
 .
+├── deploy/
+│   └── local/           # committed local runtime topology/assets
 ├── docs/                # product and engineering specs
 ├── e2e/
 │   ├── fixtures/        # deterministic inputs for the local harness
 │   └── scenarios/       # Playwright scenarios for reality-like end-to-end runs
 ├── internal/
-│   └── harness/         # Go repo guardrails that keep go vet/go test live
+│   └── harness/         # Go harness-side package when real behavior needs Go-level tests/helpers
 ├── releases/            # release metadata, if and when alpha uses it
 ├── scripts/             # stable quality-loop and helper entrypoints
 ├── web/
@@ -58,6 +61,9 @@ When implementation returns, grow into this shape:
 
 ```text
 .
+├── deploy/
+│   ├── local/                   # local runtime topology and compose assets
+│   └── session-server/          # cloud-init, systemd, Caddy, bootstrap assets
 ├── docs/
 ├── e2e/
 │   ├── fixtures/
@@ -75,8 +81,6 @@ When implementation returns, grow into this shape:
 │   └── migrations/
 │       ├── controlplane/        # D1/control-plane migrations
 │       └── sessiond/            # session-server SQLite migrations
-├── deploy/
-│   └── session-server/          # cloud-init, systemd, Caddy, bootstrap assets
 ├── releases/                    # machine-readable release metadata if used
 ├── scripts/
 ├── AGENTS.md
@@ -129,6 +133,16 @@ Keep migrations explicit and split by runtime:
 - `db/migrations/sessiond/`
 
 That matches the architecture and schema docs and avoids hiding critical schema state in random app folders.
+
+### `deploy/local/`
+
+This is the home for the repo-local runtime contract and assets:
+
+- committed topology/port source of truth
+- Compose files and related local runtime config when that slice lands
+- local-runtime docs that should stay internal-facing
+
+This exists before `deploy/session-server/` on purpose because milestone 1 needs one real local runtime first.
 
 ### `deploy/session-server/`
 

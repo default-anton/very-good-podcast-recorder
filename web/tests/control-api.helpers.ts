@@ -1,6 +1,7 @@
 import type { ControlSessionResponse } from "../control/src/app/lib/api";
 import { createSessionApiPath } from "../control/src/app/lib/api";
 import worker from "../control/src/worker";
+import { getLocalControlApiOrigin } from "../shared/localRuntime";
 
 export function jsonRequest(method: "PATCH" | "POST" | "PUT", body: unknown): RequestInit {
   return {
@@ -13,7 +14,7 @@ export function jsonRequest(method: "PATCH" | "POST" | "PUT", body: unknown): Re
 }
 
 export async function requestControl(path: string, init?: RequestInit) {
-  return worker.fetch(new Request(`http://127.0.0.1:5173${path}`, init));
+  return worker.fetch(new Request(`${getLocalControlApiOrigin()}${path}`, init));
 }
 
 export async function provisionLocalSession(sessionId: string) {

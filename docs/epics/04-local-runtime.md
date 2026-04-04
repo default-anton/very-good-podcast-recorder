@@ -3,7 +3,7 @@
 ## Recommended PR slices
 
 split into 2 PRs:
-- local runtime topology/config source of truth
+- [done] local runtime topology/config source of truth
 - local runtime compose/config/scripts + smoke output
 
 Related docs:

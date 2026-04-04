@@ -8,6 +8,7 @@ very-good-podcast-recorder is an open-source remote podcast recorder: browser-ba
 If you need a spec or are updating docs, start with `docs/README.md` and follow the owning doc.
 If you are making architecture, infrastructure, or stack decisions, read `docs/architecture.md` first.
 If you are changing join/session/recording/upload/reconnect flows or the test harness around them, read `docs/testing.md` first.
+If you are changing local runtime ports, origins, hostnames, or loopback assumptions, update `deploy/local/topology.json` first and keep code/tests consuming that contract via `web/shared/localRuntime.ts`.
 
 ## Fast feedback loop (required)
 

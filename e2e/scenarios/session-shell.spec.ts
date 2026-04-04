@@ -2,8 +2,12 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 import { buildJoinHref, buildJoinRoomPath } from "../../web/shared/joinLinks";
+import { getLocalControlAppOrigin, getLocalSessionAppOrigin } from "../../web/shared/localRuntime";
 
-test.use({ baseURL: "http://127.0.0.1:5174" });
+const localControlAppOrigin = getLocalControlAppOrigin();
+const localSessionAppOrigin = getLocalSessionAppOrigin();
+
+test.use({ baseURL: localSessionAppOrigin });
 
 for (const viewport of [
   { height: 1024, name: "narrow tablet", width: 768 },
@@ -75,7 +79,7 @@ for (const viewport of [
 
 test("ended role links stay invalid in the session app", async ({ page }) => {
   const sessionId = "ended-link-proof-01";
-  const sessionPath = `http://127.0.0.1:5173/api/v1/sessions/${encodeURIComponent(sessionId)}`;
+  const sessionPath = `${localControlAppOrigin}/api/v1/sessions/${encodeURIComponent(sessionId)}`;
   const provisionedSession = await page.request.fetch(sessionPath, {
     headers: {
       Accept: "application/json",
@@ -165,7 +169,7 @@ function seatRow(page: Page, displayName: string) {
 
 async function provisionRoleLink(page: Page, sessionId: string, role: "guest" | "host") {
   const response = await page.request.fetch(
-    `http://127.0.0.1:5173/api/v1/sessions/${encodeURIComponent(sessionId)}`,
+    `${localControlAppOrigin}/api/v1/sessions/${encodeURIComponent(sessionId)}`,
     {
       headers: {
         Accept: "application/json",
