@@ -4,7 +4,7 @@
 
 split into 2–3 PRs:
 - [done] shared session/runtime contract extraction
-- session app state split by seam
+- [done] session app state split by seam
 - sessiond persistence/artifact split + guardrail refresh
 
 Related docs:
