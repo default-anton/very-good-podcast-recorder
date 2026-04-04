@@ -1,4 +1,4 @@
-import type { SessionStatus } from "../../app/lib/types";
+import type { SessionStatus } from "../../../../shared/sessionContract";
 
 import { errorResponse } from "../http/response";
 

@@ -1,5 +1,8 @@
-import type { UpdateControlSeatInput } from "../../app/lib/api";
-import type { SeatRole, SessionStatus } from "../../app/lib/types";
+import type {
+  SeatRole,
+  SessionStatus,
+  UpdateControlSeatInput,
+} from "../../../../shared/sessionContract";
 
 import { errorResponse } from "../http/response";
 import { invalidFieldResponse, rosterLockedResponse, terminalSessionResponse } from "./errors";

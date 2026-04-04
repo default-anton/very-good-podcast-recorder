@@ -6,7 +6,7 @@ import {
   sessionAppReducer,
 } from "../session/src/app/lib/sessionState";
 import { getLocalLiveKitUrl, getLocalSessiondBaseUrl } from "../shared/localRuntime";
-import type { SessionBootstrapResponse } from "../session/src/app/lib/query";
+import type { SessionBootstrapResponse } from "../shared/sessionContract";
 import type { JoinRole, SessionSeat } from "../session/src/app/lib/types";
 
 describe("session shell state", () => {

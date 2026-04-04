@@ -2,36 +2,19 @@ import { QueryClient, queryOptions } from "@tanstack/react-query";
 
 import type { JoinLinkRole } from "../../../../shared/joinLinks";
 import {
+  createBootstrapApiPath,
+  createSessionApiPath,
+  type SessionBootstrapResponse,
+  type SessionLinks,
+} from "../../../../shared/sessionContract";
+import {
   getLocalControlApiOrigin,
   resolveLocalControlApiOrigin,
 } from "../../../../shared/localRuntime";
 
-export interface SessionBootstrapResponse {
-  runtime: {
-    baseUrl: string;
-    liveKitUrl: string;
-    roomName: string;
-    state: "creating" | "ready" | "stopping" | "stopped" | "failed";
-    turn: null;
-  };
-  seats: Array<{
-    displayName: string;
-    id: string;
-    label: string;
-    role: JoinLinkRole;
-  }>;
-  session: {
-    id: string;
-    role: JoinLinkRole;
-    status: "draft" | "ready" | "active" | "ended";
-    title: string;
-  };
-}
+export type { SessionBootstrapResponse } from "../../../../shared/sessionContract";
 
-export interface SessionRoleLinksResponse {
-  guest: string;
-  host: string;
-}
+export type SessionRoleLinksResponse = SessionLinks;
 
 export const sessionQueryKeys = {
   bootstrap: (sessionId: string, role: JoinLinkRole, joinKey: string) =>
@@ -83,16 +66,6 @@ async function fetchSessionRoleLinks(sessionId: string) {
   );
 
   return response.session.links;
-}
-
-function createBootstrapApiPath(sessionId: string, role: JoinLinkRole, joinKey: string) {
-  const searchParams = new URLSearchParams({ k: joinKey });
-
-  return `/api/v1/sessions/${encodeURIComponent(sessionId)}/bootstrap/${role}?${searchParams.toString()}`;
-}
-
-function createSessionApiPath(sessionId: string) {
-  return `/api/v1/sessions/${encodeURIComponent(sessionId)}`;
 }
 
 async function fetchJson<TResponse>(path: string, init?: RequestInit): Promise<TResponse> {

@@ -1,7 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
 
-import type { ControlSessionResponse } from "../control/src/app/lib/api";
+import type { ControlSession, ControlSessionResponse } from "../shared/sessionContract";
 import { controlQueryKeys } from "../control/src/app/lib/query";
 import { getLocalLiveKitUrl, getLocalSessiondBaseUrl } from "../shared/localRuntime";
 import {
@@ -9,7 +9,6 @@ import {
   patchControlSeatResponse,
 } from "../control/src/app/lib/session-contract";
 import { createInitialSession } from "../control/src/app/lib/state";
-import type { ControlSession } from "../control/src/app/lib/types";
 
 describe("control session contract cache", () => {
   it("reads rapid host toggles from the latest cached session snapshot", () => {

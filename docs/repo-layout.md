@@ -19,6 +19,7 @@ That means:
 - keep one repo
 - keep `web/control/` as the Cloudflare control-plane root
 - keep `web/session/` as the browser session app root
+- keep `web/shared/` as the neutral home for cross-app contracts and local-runtime helpers
 - let `e2e/` own reality-like harness work
 - add Go runtime, migrations, and deploy assets in predictable top-level homes when the first real slice lands
 - keep layout guidance in docs; do not enforce it with brittle repo-shape tests
@@ -42,6 +43,7 @@ Do **not** split repos. Do **not** invent a workspace architecture. Do **not** a
 ├── web/
 │   ├── control/         # control-plane package
 │   ├── session/         # join/session package
+│   ├── shared/          # neutral frontend contracts/runtime helpers shared across apps
 │   └── tests/           # fast frontend tooling guardrails
 ├── AGENTS.md
 ├── go.mod
@@ -71,6 +73,7 @@ When implementation returns, grow into this shape:
 ├── web/
 │   ├── control/                 # Cloudflare control plane: host UI + API
 │   ├── session/                 # join/session browser app
+│   ├── shared/                  # neutral contracts/runtime helpers shared across web apps
 │   └── tests/
 ├── cmd/
 │   └── sessiond/                # Go session-server entrypoint
@@ -113,6 +116,18 @@ Do **not** split the control-plane UI and API into separate top-level roots unle
 This is the browser join/session app root.
 
 Keep it separate from `web/control/` so the host app and in-call app can evolve independently without turning one frontend into a kitchen sink.
+
+### `web/shared/`
+
+This is the neutral home for browser-facing code that is shared across `web/control/`, `web/session/`, and `web/tests/`.
+
+Use it for:
+
+- shared DTO and wire-contract types
+- route/path builders and pure link helpers
+- local runtime topology/config readers
+
+Do **not** turn it into a dumping ground for generic UI helpers, app state, or product logic that still belongs to one app.
 
 ### `cmd/sessiond/` and `internal/sessiond/`
 

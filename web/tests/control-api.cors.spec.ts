@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createBootstrapApiPath, createSessionApiPath } from "../control/src/app/lib/api";
+import { createBootstrapApiPath, createSessionApiPath } from "../shared/sessionContract";
 import { getLocalControlAppOrigin, getLocalSessionAppOrigin } from "../shared/localRuntime";
 
 import { provisionLocalSession, requestControl } from "./control-api.helpers";

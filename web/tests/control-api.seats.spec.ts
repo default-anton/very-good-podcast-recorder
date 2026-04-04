@@ -4,7 +4,7 @@ import {
   createSessionApiPath,
   createSessionSeatApiPath,
   createSessionSeatsApiPath,
-} from "../control/src/app/lib/api";
+} from "../shared/sessionContract";
 
 import { jsonRequest, provisionLocalSession, requestControl } from "./control-api.helpers";
 

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import { createControlSessionPath } from "../control/src/app/lib/api";
 import {
   createBootstrapApiPath,
-  createControlSessionPath,
   createSessionApiPath,
   createSessionSeatApiPath,
-} from "../control/src/app/lib/api";
+} from "../shared/sessionContract";
 import { controlQueryKeys } from "../control/src/app/lib/query";
 import { buildJoinUrl } from "../shared/joinLinks";
 import { getLocalSessionAppOrigin } from "../shared/localRuntime";

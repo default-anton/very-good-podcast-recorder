@@ -1,5 +1,9 @@
-import type { UpdateControlSessionInput } from "../../app/lib/api";
-import type { RecordingHealth, RecordingPhase, SessionStatus } from "../../app/lib/types";
+import type {
+  RecordingHealth,
+  RecordingPhase,
+  SessionStatus,
+  UpdateControlSessionInput,
+} from "../../../../shared/sessionContract";
 
 import { errorResponse } from "../http/response";
 import {

@@ -1,72 +1,31 @@
-import type { JoinLinkRole } from "../../../../shared/joinLinks";
+import {
+  createBootstrapApiPath,
+  createSessionApiPath,
+  createSessionSeatApiPath,
+  createSessionSeatsApiPath,
+  type ControlSessionResponse,
+  type UpdateControlSeatInput,
+  type UpdateControlSessionInput,
+} from "../../../../shared/sessionContract";
 import {
   getLocalControlApiOrigin,
   resolveLocalControlApiOrigin,
 } from "../../../../shared/localRuntime";
 
-import type { ControlSession, Seat } from "./types";
-
-export type SessionRuntimeState = "creating" | "ready" | "stopping" | "stopped" | "failed";
-
-export interface SessionRuntimeDescriptor {
-  baseUrl: string;
-  liveKitUrl: string;
-  roomName: string;
-  state: SessionRuntimeState;
-  turn: null;
-}
-
-export interface ControlSessionResponse {
-  runtime: SessionRuntimeDescriptor;
-  session: ControlSession;
-}
-
-export interface SessionBootstrapResponse {
-  runtime: SessionRuntimeDescriptor;
-  seats: Array<{
-    displayName: string;
-    id: string;
-    label: string;
-    role: JoinLinkRole;
-  }>;
-  session: {
-    id: string;
-    role: JoinLinkRole;
-    status: ControlSession["status"];
-    title: string;
-  };
-}
-
-export interface UpdateControlSessionInput {
-  recordingHealth?: ControlSession["recordingHealth"];
-  recordingPhase?: ControlSession["recordingPhase"];
-  status?: ControlSession["status"];
-  title?: ControlSession["title"];
-}
-
-export interface UpdateControlSeatInput {
-  cameraEnabled?: Seat["cameraEnabled"];
-  displayName?: Seat["displayName"];
-  joined?: Seat["joined"];
-  micMuted?: Seat["micMuted"];
-  ownershipStatus?: Seat["ownershipStatus"];
-  role?: Seat["role"];
-  screenShareActive?: Seat["screenShareActive"];
-  selectedCamera?: Seat["selectedCamera"];
-  selectedMic?: Seat["selectedMic"];
-}
-
-export function createSessionApiPath(sessionId: string) {
-  return `/api/v1/sessions/${encodeURIComponent(sessionId)}`;
-}
-
-export function createSessionSeatsApiPath(sessionId: string) {
-  return `${createSessionApiPath(sessionId)}/seats`;
-}
-
-export function createSessionSeatApiPath(sessionId: string, seatId: string) {
-  return `${createSessionSeatsApiPath(sessionId)}/${encodeURIComponent(seatId)}`;
-}
+export {
+  createBootstrapApiPath,
+  createSessionApiPath,
+  createSessionSeatApiPath,
+  createSessionSeatsApiPath,
+} from "../../../../shared/sessionContract";
+export type {
+  ControlSessionResponse,
+  SessionBootstrapResponse,
+  SessionRuntimeDescriptor,
+  SessionRuntimeState,
+  UpdateControlSeatInput,
+  UpdateControlSessionInput,
+} from "../../../../shared/sessionContract";
 
 export function createControlSessionPath(sessionId: string) {
   return `/sessions/${encodeURIComponent(sessionId)}`;
@@ -74,13 +33,6 @@ export function createControlSessionPath(sessionId: string) {
 
 export function createControlRoomPath(sessionId: string) {
   return `${createControlSessionPath(sessionId)}/room`;
-}
-
-export function createBootstrapApiPath(sessionId: string, role: JoinLinkRole, joinKey: string) {
-  const path = `${createSessionApiPath(sessionId)}/bootstrap/${role}`;
-  const searchParams = new URLSearchParams({ k: joinKey });
-
-  return `${path}?${searchParams.toString()}`;
 }
 
 export async function ensureControlSession(

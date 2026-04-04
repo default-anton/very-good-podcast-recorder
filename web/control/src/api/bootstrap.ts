@@ -1,4 +1,7 @@
-import type { ControlSessionResponse, SessionBootstrapResponse } from "../app/lib/api";
+import type {
+  ControlSessionResponse,
+  SessionBootstrapResponse,
+} from "../../../shared/sessionContract";
 
 import type { JoinLinkRole } from "./join-links";
 import { toSeatDescriptors } from "./seats";

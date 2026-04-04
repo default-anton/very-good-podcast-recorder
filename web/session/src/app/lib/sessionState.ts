@@ -1,4 +1,4 @@
-import type { SessionBootstrapResponse } from "./query";
+import type { SessionBootstrapResponse } from "../../../../shared/sessionContract";
 import type {
   JoinDemoPreset,
   JoinRole,

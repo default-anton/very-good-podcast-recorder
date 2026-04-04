@@ -1,4 +1,4 @@
-import type { RecordingPhase, SessionStatus } from "../../app/lib/types";
+import type { RecordingPhase, SessionStatus } from "../../../../shared/sessionContract";
 
 export function isAllowedStatusTransition(currentStatus: SessionStatus, nextStatus: SessionStatus) {
   if (currentStatus === nextStatus) {

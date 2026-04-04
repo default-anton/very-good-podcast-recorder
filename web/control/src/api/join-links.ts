@@ -1,6 +1,5 @@
 import type { JoinLinkRole } from "../../../shared/joinLinks";
-
-import type { SessionJoinKeys } from "../app/lib/state";
+import type { SessionJoinKeys } from "../../../shared/sessionContract";
 
 export type { JoinLinkRole };
 

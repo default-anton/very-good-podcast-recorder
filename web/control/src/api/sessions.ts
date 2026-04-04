@@ -1,11 +1,13 @@
-import type {
-  ControlSessionResponse,
-  SessionRuntimeDescriptor,
-  UpdateControlSeatInput,
-  UpdateControlSessionInput,
-} from "../app/lib/api";
+import {
+  type ControlSession,
+  type ControlSessionResponse,
+  type SessionJoinKeys,
+  type SessionRuntimeDescriptor,
+  type UpdateControlSeatInput,
+  type UpdateControlSessionInput,
+  withSessionLinks,
+} from "../../../shared/sessionContract";
 import { createGuestSeat, createInitialSession } from "../app/lib/session-fixtures";
-import { type SessionJoinKeys, withSessionLinks } from "../app/lib/session-links";
 import {
   createLocalRuntimeTopology,
   resolveLocalSessionAppOrigin,
@@ -15,7 +17,6 @@ import {
   patchSessionSeat,
   removeSessionSeat,
 } from "../app/lib/session-model";
-import type { ControlSession } from "../app/lib/types";
 
 import { createLocalJoinKeys, type JoinLinkRole, hasValidLocalJoinKey } from "./join-links";
 

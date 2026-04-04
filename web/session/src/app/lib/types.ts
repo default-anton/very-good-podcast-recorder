@@ -1,20 +1,22 @@
-export type JoinRole = "host" | "guest";
+import type { JoinLinkRole } from "../../../../shared/joinLinks";
+import type {
+  LiveCallStatus,
+  LocalCaptureStatus,
+  RecordingHealth,
+  RecordingPhase,
+  SeatOwnershipStatus,
+  UploadStatus,
+} from "../../../../shared/sessionContract";
+
+export type JoinRole = JoinLinkRole;
+
+export type { LiveCallStatus, LocalCaptureStatus, RecordingHealth, RecordingPhase, UploadStatus };
 
 export type PickerState = "available" | "you" | "in_use" | "rejoin_available";
 
-export type RecordingPhase = "waiting" | "recording" | "draining" | "stopped" | "failed";
-
-export type RecordingHealth = "healthy" | "degraded" | "failed";
-
 export type ClaimState = "unclaimed" | "active" | "disconnected";
 
-export type LiveCallStatus = "connected" | "reconnecting" | "disconnected";
-
-export type LocalCaptureStatus = "not_recording" | "recording" | "issue";
-
-export type UploadStatus = "synced" | "uploading" | "catching_up" | "failed";
-
-export type OwnershipStatus = "clear" | "rejoin_available" | "takeover_required";
+export type OwnershipStatus = SeatOwnershipStatus;
 
 export type JoinDemoPreset = "fresh" | "owned" | "recover" | "takeover";
 

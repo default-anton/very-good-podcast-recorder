@@ -1,4 +1,4 @@
-import type { ControlSession, Seat } from "../app/lib/types";
+import type { ControlSession, ControlSeat as Seat } from "../../../shared/sessionContract";
 
 export interface ControlSeatDescriptor {
   displayName: string;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createSessionApiPath } from "../control/src/app/lib/api";
+import { createSessionApiPath } from "../shared/sessionContract";
 
 import { jsonRequest, provisionLocalSession, requestControl } from "./control-api.helpers";
 

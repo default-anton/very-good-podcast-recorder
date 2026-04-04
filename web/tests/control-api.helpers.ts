@@ -1,7 +1,7 @@
-import type { ControlSessionResponse } from "../control/src/app/lib/api";
-import { createSessionApiPath } from "../control/src/app/lib/api";
 import worker from "../control/src/worker";
 import { getLocalControlApiOrigin } from "../shared/localRuntime";
+import type { ControlSessionResponse } from "../shared/sessionContract";
+import { createSessionApiPath } from "../shared/sessionContract";
 
 export function jsonRequest(method: "PATCH" | "POST" | "PUT", body: unknown): RequestInit {
   return {

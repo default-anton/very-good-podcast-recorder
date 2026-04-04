@@ -3,7 +3,7 @@
 ## Recommended PR slices
 
 split into 2–3 PRs:
-- shared session/runtime contract extraction
+- [done] shared session/runtime contract extraction
 - session app state split by seam
 - sessiond persistence/artifact split + guardrail refresh
 

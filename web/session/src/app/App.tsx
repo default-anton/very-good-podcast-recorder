@@ -10,6 +10,7 @@ import {
 import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 
 import { buildJoinHref } from "../../../shared/joinLinks";
+import type { SessionBootstrapResponse } from "../../../shared/sessionContract";
 
 import { Card, CardBody, CardHeader } from "./components/ui";
 import { useQuery } from "@tanstack/react-query";
@@ -25,11 +26,7 @@ import {
   type SessionAppAction,
   type SessionAppState,
 } from "./lib/sessionState";
-import {
-  sessionBootstrapQueryOptions,
-  sessionRoleLinksQueryOptions,
-  type SessionBootstrapResponse,
-} from "./lib/query";
+import { sessionBootstrapQueryOptions, sessionRoleLinksQueryOptions } from "./lib/query";
 import type { JoinDemoPreset, JoinRole, RoomDemoPreset, SessionShell } from "./lib/types";
 import { JoinPage } from "./routes/JoinPage";
 import { RoomPage } from "./routes/RoomPage";
