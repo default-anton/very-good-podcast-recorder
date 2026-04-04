@@ -205,6 +205,56 @@ func TestLoadConfigParsesBootstrapAndLiveKitYAML(t *testing.T) {
 	}
 }
 
+func TestLoadConfigParsesBootstrapAndLiveKitEnv(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := LoadConfig(nil, lookupEnvFromMap(map[string]string{
+		envSessionID:             "sess-bootstrap-env",
+		envLiveKitAPIKey:         "lk-env-key",
+		envLiveKitAPISecret:      "lk-env-secret",
+		envBootstrapHostJoinKey:  "host-env-secret",
+		envBootstrapGuestJoinKey: "guest-env-secret",
+		envBootstrapSeatsJSON:    `[{"id":"seat-host-01","role":"host","display_name":"Anton Host"},{"id":"seat-guest-02","role":"guest","display_name":"Mara Chen"}]`,
+	}))
+	if err != nil {
+		t.Fatalf("LoadConfig(): %v", err)
+	}
+
+	if cfg.LiveKit.APIKey != "lk-env-key" {
+		t.Fatalf("LiveKit.APIKey = %q, want %q", cfg.LiveKit.APIKey, "lk-env-key")
+	}
+	if cfg.LiveKit.APISecret != "lk-env-secret" {
+		t.Fatalf("LiveKit.APISecret = %q, want %q", cfg.LiveKit.APISecret, "lk-env-secret")
+	}
+	if cfg.Bootstrap.HostJoinKey != "host-env-secret" {
+		t.Fatalf("Bootstrap.HostJoinKey = %q, want %q", cfg.Bootstrap.HostJoinKey, "host-env-secret")
+	}
+	if cfg.Bootstrap.GuestJoinKey != "guest-env-secret" {
+		t.Fatalf("Bootstrap.GuestJoinKey = %q, want %q", cfg.Bootstrap.GuestJoinKey, "guest-env-secret")
+	}
+	if len(cfg.Bootstrap.Seats) != 2 {
+		t.Fatalf("len(Bootstrap.Seats) = %d, want 2", len(cfg.Bootstrap.Seats))
+	}
+	if cfg.Bootstrap.Seats[0].DisplayName != "Anton Host" || cfg.Bootstrap.Seats[1].DisplayName != "Mara Chen" {
+		t.Fatalf("Bootstrap.Seats = %#v, want env-provided bootstrap seats", cfg.Bootstrap.Seats)
+	}
+}
+
+func TestLoadConfigRejectsInvalidBootstrapSeatsJSON(t *testing.T) {
+	t.Parallel()
+
+	_, err := LoadConfig(nil, lookupEnvFromMap(map[string]string{
+		envSessionID:          "sess-bootstrap-env-invalid",
+		envBootstrapSeatsJSON: `{invalid}`,
+	}))
+	if err == nil {
+		t.Fatal("LoadConfig() error = nil, want invalid bootstrap seats env error")
+	}
+	if !strings.Contains(err.Error(), envBootstrapSeatsJSON) {
+		t.Fatalf("LoadConfig() error = %q, want %q context", err, envBootstrapSeatsJSON)
+	}
+}
+
 func TestLoadConfigDoesNotRequireTemporaryRuntimeBootstrapConfig(t *testing.T) {
 	t.Parallel()
 

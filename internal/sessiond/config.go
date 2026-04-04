@@ -2,6 +2,7 @@ package sessiond
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -13,16 +14,21 @@ import (
 )
 
 const (
-	defaultArtifactRoot = "./var/sessiond"
-	defaultListenAddr   = "127.0.0.1:8081"
-	defaultVersion      = "dev"
-	runtimeDirMode      = 0o700
-	envArtifactRoot     = "SESSIOND_ARTIFACT_ROOT"
-	envConfigPath       = "SESSIOND_CONFIG"
-	envListenAddr       = "SESSIOND_LISTEN_ADDR"
-	envReleaseVersion   = "SESSIOND_RELEASE_VERSION"
-	envSessionID        = "SESSIOND_SESSION_ID"
-	envSQLitePath       = "SESSIOND_SQLITE_PATH"
+	defaultArtifactRoot      = "./var/sessiond"
+	defaultListenAddr        = "127.0.0.1:8081"
+	defaultVersion           = "dev"
+	runtimeDirMode           = 0o700
+	envArtifactRoot          = "SESSIOND_ARTIFACT_ROOT"
+	envBootstrapGuestJoinKey = "SESSIOND_BOOTSTRAP_GUEST_JOIN_KEY"
+	envBootstrapHostJoinKey  = "SESSIOND_BOOTSTRAP_HOST_JOIN_KEY"
+	envBootstrapSeatsJSON    = "SESSIOND_BOOTSTRAP_SEATS_JSON"
+	envConfigPath            = "SESSIOND_CONFIG"
+	envListenAddr            = "SESSIOND_LISTEN_ADDR"
+	envLiveKitAPIKey         = "SESSIOND_LIVEKIT_API_KEY"
+	envLiveKitAPISecret      = "SESSIOND_LIVEKIT_API_SECRET"
+	envReleaseVersion        = "SESSIOND_RELEASE_VERSION"
+	envSessionID             = "SESSIOND_SESSION_ID"
+	envSQLitePath            = "SESSIOND_SQLITE_PATH"
 )
 
 type Config struct {
@@ -36,20 +42,20 @@ type Config struct {
 }
 
 type LiveKitConfig struct {
-	APIKey    string `yaml:"api_key"`
-	APISecret string `yaml:"api_secret"`
+	APIKey    string `yaml:"api_key" json:"api_key"`
+	APISecret string `yaml:"api_secret" json:"api_secret"`
 }
 
 type BootstrapConfig struct {
-	HostJoinKey  string          `yaml:"host_join_key"`
-	GuestJoinKey string          `yaml:"guest_join_key"`
-	Seats        []BootstrapSeat `yaml:"seats"`
+	HostJoinKey  string          `yaml:"host_join_key" json:"host_join_key"`
+	GuestJoinKey string          `yaml:"guest_join_key" json:"guest_join_key"`
+	Seats        []BootstrapSeat `yaml:"seats" json:"seats"`
 }
 
 type BootstrapSeat struct {
-	ID          string `yaml:"id"`
-	Role        string `yaml:"role"`
-	DisplayName string `yaml:"display_name"`
+	ID          string `yaml:"id" json:"id"`
+	Role        string `yaml:"role" json:"role"`
+	DisplayName string `yaml:"display_name" json:"display_name"`
 }
 
 type lookupEnvFunc func(string) (string, bool)
@@ -111,7 +117,9 @@ func LoadConfig(args []string, lookupEnv lookupEnvFunc) (Config, error) {
 		mergeConfig(&cfg, fileConfig)
 	}
 
-	applyEnvOverrides(&cfg, lookupEnv)
+	if err := applyEnvOverrides(&cfg, lookupEnv); err != nil {
+		return Config{}, err
+	}
 	applyFlagOverrides(&cfg, listenAddrFlag, sessionIDFlag, releaseVersionFlag, artifactRootFlag, sqlitePathFlag)
 	trimConfig(&cfg)
 
@@ -316,12 +324,26 @@ func trimConfig(cfg *Config) {
 	}
 }
 
-func applyEnvOverrides(cfg *Config, lookupEnv lookupEnvFunc) {
+func applyEnvOverrides(cfg *Config, lookupEnv lookupEnvFunc) error {
 	applyStringEnv(&cfg.ListenAddr, lookupEnv, envListenAddr)
 	applyStringEnv(&cfg.SessionID, lookupEnv, envSessionID)
 	applyStringEnv(&cfg.ReleaseVersion, lookupEnv, envReleaseVersion)
 	applyStringEnv(&cfg.ArtifactRoot, lookupEnv, envArtifactRoot)
 	applyStringEnv(&cfg.SQLitePath, lookupEnv, envSQLitePath)
+	applyStringEnv(&cfg.LiveKit.APIKey, lookupEnv, envLiveKitAPIKey)
+	applyStringEnv(&cfg.LiveKit.APISecret, lookupEnv, envLiveKitAPISecret)
+	applyStringEnv(&cfg.Bootstrap.HostJoinKey, lookupEnv, envBootstrapHostJoinKey)
+	applyStringEnv(&cfg.Bootstrap.GuestJoinKey, lookupEnv, envBootstrapGuestJoinKey)
+
+	if value, ok := lookupEnv(envBootstrapSeatsJSON); ok && strings.TrimSpace(value) != "" {
+		seats, err := parseBootstrapSeatsJSON(value)
+		if err != nil {
+			return fmt.Errorf("parse %s: %w", envBootstrapSeatsJSON, err)
+		}
+		cfg.Bootstrap.Seats = seats
+	}
+
+	return nil
 }
 
 func applyFlagOverrides(
@@ -343,6 +365,21 @@ func applyStringEnv(target *string, lookupEnv lookupEnvFunc, key string) {
 	if value, ok := lookupEnv(key); ok && value != "" {
 		*target = value
 	}
+}
+
+func parseBootstrapSeatsJSON(value string) ([]BootstrapSeat, error) {
+	decoder := json.NewDecoder(strings.NewReader(value))
+	decoder.DisallowUnknownFields()
+
+	var seats []BootstrapSeat
+	if err := decoder.Decode(&seats); err != nil {
+		return nil, err
+	}
+	if err := decoder.Decode(&struct{}{}); err != nil && err != io.EOF {
+		return nil, fmt.Errorf("must contain exactly one JSON array")
+	}
+
+	return seats, nil
 }
 
 func applyStringFlag(target *string, flagValue stringFlag) {

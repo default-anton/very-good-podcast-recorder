@@ -61,8 +61,13 @@ Environment:
   SESSIOND_RELEASE_VERSION
   SESSIOND_ARTIFACT_ROOT
   SESSIOND_SQLITE_PATH
+  SESSIOND_LIVEKIT_API_KEY
+  SESSIOND_LIVEKIT_API_SECRET
+  SESSIOND_BOOTSTRAP_HOST_JOIN_KEY
+  SESSIOND_BOOTSTRAP_GUEST_JOIN_KEY
+  SESSIOND_BOOTSTRAP_SEATS_JSON
 
-The config file must currently provide:
+Runtime bootstrap may come from env or the config file:
   livekit.api_key
   livekit.api_secret
   bootstrap.host_join_key
