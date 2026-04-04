@@ -2,8 +2,9 @@
 
 ## Recommended PR slices
 
-split into 4–5 PRs:
+split into 5–6 PRs:
 - provisioning intent/state model
+- control-plane -> sessiond snapshot sync + runtime handoff
 - release bundle/checksum plumbing
 - VM bootstrap + readiness
 - DNS/TLS integration
@@ -45,6 +46,8 @@ And the matching control-plane provisioning code in `web/control/`.
 Implement only what milestone 2 needs:
 
 - record provisioning intent in the control plane
+- sync the hosted session snapshot into `sessiond` before readiness: session id, roster version, join-key hashes, and participant seats
+- make that sync path the runtime handoff contract instead of config-seeded bootstrap state for hosted runs
 - create a DigitalOcean VM from the stock Ubuntu LTS image with cloud-init
 - install one versioned session-server bundle with explicit checksum verification
 - configure and start Caddy, LiveKit, `sessiond`, and `coturn`
@@ -64,6 +67,7 @@ Implement only what milestone 2 needs:
 ## acceptance criteria
 
 - the control plane can drive one disposable backend from provisioning intent to `ready`
+- hosted `sessiond` bootstrap state comes from an explicit control-plane snapshot sync, not fresh config-seeded SQLite state
 - readiness is based on machine-readable checks, not sleep loops
 - the session hostname serves HTTPS and TURN comes from that same disposable server
 - a pre-recording bootstrap failure destroys and replaces the VM, repoints DNS, and keeps the same human join link

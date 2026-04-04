@@ -5,7 +5,7 @@
 split into 2–3 PRs:
 - [done] service skeleton + config + health
 - [done] claims/state basics
-- uploads + manifest persistence
+- [done] uploads + manifest persistence
 
 Related docs:
 
@@ -38,7 +38,6 @@ internal/
     ├── routes_upload.go
     ├── livekit.go
     ├── manifests.go
-    ├── artifact_paths.go
     ├── sqlite.go
     ├── server_test.go
     └── doc.go
@@ -91,6 +90,8 @@ Do **not** introduce `pkg/`.
 Do **not** add `cmd/controlplane/`.
 This slice should stay tightly scoped to the disposable session server.
 
-Current claims/state work seeds fresh `sessiond` SQLite state from config bootstrap data; the `uploads + manifest persistence` slice should replace that with the real control-plane/session bootstrap sync path.
+For milestone 1 and local runtime work, `sessiond` may still seed fresh SQLite state from config bootstrap data.
 
-The `uploads + manifest persistence` slice should build on the landed `sessiond` SQLite schema and artifact paths instead of introducing parallel persistence state.
+The real control-plane -> `sessiond` session snapshot sync path now belongs to `docs/epics/07-hosted-session-provisioning.md`, because it is part of the hosted runtime handoff and readiness contract, not the minimal local `sessiond` slice.
+
+This slice built on the landed `sessiond` SQLite schema and artifact paths instead of introducing parallel persistence state.
