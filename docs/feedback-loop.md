@@ -84,7 +84,7 @@ If a flow matters, it needs output we can grep and machine-parse.
 - `scripts/format`, `scripts/lint`, `scripts/typecheck`, `scripts/test`, and `scripts/check`
 - a small Go harness package so `go vet` and `go test` stay live
 - frontend tooling config for `web/control/` and `web/session/`
-- Vitest coverage for tooling and repo-shape guardrails
+- Vitest coverage for tooling and contract-focused guardrails around shared runtime/config surfaces and module seams
 - Playwright config plus `e2e/` placeholders for the future multi-participant harness
 - pre-commit hooks via `prek`
 - CI or scripted audit coverage for formatting, lint, type checks, tests, and vulnerability scanning
@@ -92,7 +92,7 @@ If a flow matters, it needs output we can grep and machine-parse.
 **Done when:**
 
 - a contributor can clone the repo, install dependencies, and discover the default checks quickly
-- the harness catches accidental reintroduction of retired implementation trees
+- the harness catches accidental drift in shared runtime/config contracts and key module ownership seams
 - staged Go and frontend changes are formatted and cheap semantic checks run before commit
 - CI blocks merges on broken formatting, lint, tests, or critical dependency issues
 

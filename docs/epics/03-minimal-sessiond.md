@@ -30,17 +30,32 @@ cmd/
 
 internal/
 └── sessiond/
+    ├── artifact_manifest.go
+    ├── artifact_paths.go
+    ├── artifact_reconcile.go
+    ├── artifacts_test.go
+    ├── claims_test.go
     ├── config.go
-    ├── server.go
-    ├── routes_health.go
-    ├── routes_claims.go
-    ├── routes_recording.go
-    ├── routes_upload.go
+    ├── config_test.go
+    ├── doc.go
     ├── livekit.go
     ├── manifests.go
+    ├── recording_test.go
+    ├── recording_track_state.go
+    ├── recording_track_validation.go
+    ├── recording_tracks.go
+    ├── routes_claims.go
+    ├── routes_health.go
+    ├── routes_recording.go
+    ├── routes_upload.go
+    ├── runtime_test.go
+    ├── server.go
     ├── sqlite.go
-    ├── server_test.go
-    └── doc.go
+    ├── sqlite_artifacts.go
+    ├── sqlite_claims.go
+    ├── sqlite_recording.go
+    ├── sqlite_recording_tracks.go
+    └── upload_test.go
 
 db/
 └── migrations/

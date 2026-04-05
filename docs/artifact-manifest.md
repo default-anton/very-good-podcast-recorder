@@ -19,6 +19,7 @@ Use exactly 2 JSON manifests:
 Keep paths, filenames, and IDs stable.
 Do **not** add a third manifest type for v1.
 Structured logs can carry extra debugging detail.
+Treat `session.json` and `seats/**` as a managed artifact namespace: SQLite is the durable source of truth for which manifests and chunk files belong there, and startup rebuilds should prune stale files that are no longer referenced by SQLite.
 
 ## scope
 
