@@ -21,6 +21,16 @@ export function rosterLockedResponse(
   );
 }
 
+export function bootstrapBoundRosterResponse(request: Request, sessionId: string) {
+  return errorResponse(
+    request,
+    409,
+    "session_bootstrap_bound",
+    `Local session ${sessionId} is bound to the repo-local sessiond bootstrap roster. Edit deploy/local/sessiond.env or .env.local and restart the local runtime instead of mutating this roster through the control API.`,
+    "session",
+  );
+}
+
 export function terminalSessionResponse(request: Request, sessionId: string) {
   return errorResponse(
     request,

@@ -44,7 +44,7 @@ The repo-local command path for the `core` profile is:
 4. verify the stack with `mise exec -- ./scripts/local-smoke`
 5. stop it with `mise exec -- ./scripts/local-down`
 
-`./scripts/local-smoke` writes `.vgpr/local/e2e/local-smoke.json` and emits the resolved control-app and session-app URLs alongside service health.
+`./scripts/local-smoke` writes `.vgpr/local/e2e/local-smoke.json` and emits the resolved control-app and session-app URLs alongside service health. It also verifies that the control-plane-issued host and guest join URLs are accepted by `sessiond` seat-picker endpoints, so control/bootstrap drift fails fast.
 
 `./scripts/local-up` must fail instead of silently attaching to unrelated listeners already sitting on the runtime ports. If a port is occupied by something the repo did not start, fix that first or stop the old runtime explicitly.
 

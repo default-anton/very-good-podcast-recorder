@@ -5,6 +5,7 @@ import {
   createSessionSeatApiPath,
   createSessionSeatsApiPath,
 } from "../shared/sessionContract";
+import { loadLocalBootstrapConfig } from "../shared/localBootstrap";
 
 import { jsonRequest, provisionLocalSession, requestControl } from "./control-api.helpers";
 
@@ -55,6 +56,45 @@ describe("control-plane local API seats", () => {
       { displayName: "Jules Host", id: "seat-guest-03", role: "host" },
       { displayName: "Dana White", id: "seat-guest-04", role: "guest" },
     ]);
+  });
+
+  it("keeps the repo-local runtime roster bound to the sessiond bootstrap contract", async () => {
+    const bootstrap = loadLocalBootstrapConfig();
+
+    await provisionLocalSession(bootstrap.sessionId);
+
+    const blockedSeatCreate = await requestControl(createSessionSeatsApiPath(bootstrap.sessionId), {
+      method: "POST",
+    });
+    const blockedSeatRename = await requestControl(
+      createSessionSeatApiPath(bootstrap.sessionId, bootstrap.seats[1]?.id ?? "seat-guest-02"),
+      jsonRequest("PATCH", {
+        displayName: "Not Allowed",
+      }),
+    );
+    const allowedRuntimePatch = await requestControl(
+      createSessionSeatApiPath(bootstrap.sessionId, bootstrap.seats[0].id),
+      jsonRequest("PATCH", {
+        micMuted: true,
+      }),
+    );
+
+    expect(blockedSeatCreate.status).toBe(409);
+    expect(await blockedSeatCreate.json()).toEqual({
+      error: {
+        code: "session_bootstrap_bound",
+        message: `Local session ${bootstrap.sessionId} is bound to the repo-local sessiond bootstrap roster. Edit deploy/local/sessiond.env or .env.local and restart the local runtime instead of mutating this roster through the control API.`,
+      },
+    });
+    expect(blockedSeatRename.status).toBe(409);
+    expect(await blockedSeatRename.json()).toEqual({
+      error: {
+        code: "session_bootstrap_bound",
+        message: `Local session ${bootstrap.sessionId} is bound to the repo-local sessiond bootstrap roster. Edit deploy/local/sessiond.env or .env.local and restart the local runtime instead of mutating this roster through the control API.`,
+      },
+    });
+    expect(allowedRuntimePatch.status).toBe(200);
+    expect((await allowedRuntimePatch.json()).session.seats[0].micMuted).toBe(true);
   });
 
   it("freezes roster edits after activation but allows runtime seat patches until ended", async () => {

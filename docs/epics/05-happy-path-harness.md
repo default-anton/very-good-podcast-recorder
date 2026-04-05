@@ -3,7 +3,7 @@
 ## Recommended PR slices
 
 split into 2 PRs:
-- harness primitives/fixtures/summary
+- [done] harness primitives/fixtures/summary
 - happy-path scenario using them
 
 Related docs:

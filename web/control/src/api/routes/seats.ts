@@ -43,7 +43,12 @@ export async function handleSeatsRoute(request: Request, url: URL, rawSessionId:
     );
   }
 
-  const rosterLockError = validateRosterMutation(request, sessionId, storedRecord.session.status);
+  const rosterLockError = validateRosterMutation(
+    request,
+    sessionId,
+    storedRecord.session.status,
+    storedRecord.localRuntimeBootstrapBound,
+  );
 
   if (rosterLockError !== null) {
     return rosterLockError;
@@ -105,7 +110,12 @@ export async function handleSeatRoute(
   }
 
   if (request.method === "DELETE") {
-    const rosterLockError = validateRosterMutation(request, sessionId, storedRecord.session.status);
+    const rosterLockError = validateRosterMutation(
+      request,
+      sessionId,
+      storedRecord.session.status,
+      storedRecord.localRuntimeBootstrapBound,
+    );
 
     if (rosterLockError !== null) {
       return rosterLockError;
@@ -137,6 +147,7 @@ export async function handleSeatRoute(
     sessionId,
     storedRecord.session.status,
     patch,
+    storedRecord.localRuntimeBootstrapBound,
   );
 
   if (seatValidationError !== null) {

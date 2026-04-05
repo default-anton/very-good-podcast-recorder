@@ -22,6 +22,17 @@ For this product, unit tests are necessary but insufficient. The recording path 
 
 ## alpha harness
 
+### harness primitives and summary [done]
+
+The harness foundation now includes:
+
+- committed fake media fixtures under `e2e/fixtures/fake-media/`
+- browser launch helpers in `e2e/fixtures/browser.ts`
+- local control/sessiond driver helpers in `e2e/fixtures/session-driver.ts`
+- artifact inventory + summary JSON helpers in `e2e/fixtures/summary.ts`
+
+These primitives are foundation only. They do **not** replace the real happy-path scenario.
+
 The first harness should run the **real local stack** from `docs/local-stack.md`, not mocks:
 
 - control plane web app + API

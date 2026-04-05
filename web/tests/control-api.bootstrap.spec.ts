@@ -8,6 +8,7 @@ import {
 } from "../shared/sessionContract";
 import { controlQueryKeys } from "../control/src/app/lib/query";
 import { buildJoinUrl } from "../shared/joinLinks";
+import { loadLocalBootstrapConfig } from "../shared/localBootstrap";
 import { getLocalSessionAppOrigin } from "../shared/localRuntime";
 
 import { jsonRequest, provisionLocalSession, requestControl } from "./control-api.helpers";
@@ -30,6 +31,22 @@ describe("control-plane local API bootstrap", () => {
       },
       status: "ok",
     });
+  });
+
+  it("uses the sessiond bootstrap contract for the repo-local runtime session", async () => {
+    const bootstrap = loadLocalBootstrapConfig();
+    const provisionedSession = await provisionLocalSession(bootstrap.sessionId);
+
+    expect(provisionedSession.response.status).toBe(200);
+    expect(provisionedSession.hostJoinKey).toBe(bootstrap.joinKeys.host);
+    expect(provisionedSession.guestJoinKey).toBe(bootstrap.joinKeys.guest);
+    expect(
+      provisionedSession.body.session.seats.map(({ displayName, id, role }) => ({
+        displayName,
+        id,
+        role,
+      })),
+    ).toEqual(bootstrap.seats);
   });
 
   it("returns bootstrap data for a provisioned session and valid join key", async () => {

@@ -12,6 +12,7 @@ import {
   createLocalRuntimeTopology,
   resolveLocalSessionAppOrigin,
 } from "../../../shared/localRuntime";
+import { loadLocalBootstrapConfig } from "../../../shared/localBootstrap";
 import {
   normalizeControlSession,
   patchSessionSeat,
@@ -22,6 +23,7 @@ import { createLocalJoinKeys, type JoinLinkRole, hasValidLocalJoinKey } from "./
 
 interface StoredSessionRecord {
   joinKeys: SessionJoinKeys;
+  localRuntimeBootstrapBound: boolean;
   runtime: SessionRuntimeDescriptor;
   session: ControlSession;
 }
@@ -227,10 +229,47 @@ function toControlSessionResponse(
 }
 
 function createStoredSessionRecord(sessionId: string): StoredSessionRecord {
+  const bootstrap = loadLocalBootstrapConfig();
+
+  if (bootstrap.sessionId === sessionId) {
+    return {
+      joinKeys: { ...bootstrap.joinKeys },
+      localRuntimeBootstrapBound: true,
+      runtime: createLocalRuntimeDescriptor(sessionId),
+      session: normalizeControlSession(createBootstrapBoundSession(sessionId, bootstrap)),
+    };
+  }
+
   return {
     joinKeys: createLocalJoinKeys(),
+    localRuntimeBootstrapBound: false,
     runtime: createLocalRuntimeDescriptor(sessionId),
     session: normalizeControlSession(createInitialSession(sessionId)),
+  };
+}
+
+function createBootstrapBoundSession(
+  sessionId: string,
+  bootstrap: ReturnType<typeof loadLocalBootstrapConfig>,
+): ControlSession {
+  const session = createInitialSession(sessionId);
+  const defaultSeats = new Map(session.seats.map((seat) => [seat.id, seat]));
+  const defaultHostSeat = session.seats.find((seat) => seat.role === "host") ?? session.seats[0];
+
+  return {
+    ...session,
+    nextSeatNumber: bootstrap.seats.length + 1,
+    seats: bootstrap.seats.map((seat, index) => {
+      const fallback = seat.role === "host" ? defaultHostSeat : createGuestSeat(index + 1);
+      const template = defaultSeats.get(seat.id) ?? fallback;
+
+      return {
+        ...template,
+        displayName: seat.displayName,
+        id: seat.id,
+        role: seat.role,
+      };
+    }),
   };
 }
 

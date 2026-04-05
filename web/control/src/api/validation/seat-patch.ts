@@ -5,7 +5,12 @@ import type {
 } from "../../../../shared/sessionContract";
 
 import { errorResponse } from "../http/response";
-import { invalidFieldResponse, rosterLockedResponse, terminalSessionResponse } from "./errors";
+import {
+  bootstrapBoundRosterResponse,
+  invalidFieldResponse,
+  rosterLockedResponse,
+  terminalSessionResponse,
+} from "./errors";
 
 const ROSTER_EDITABLE_SESSION_STATUSES = new Set<SessionStatus>(["draft", "ready"]);
 const SEAT_ROLES = new Set<SeatRole>(["host", "guest"]);
@@ -107,7 +112,12 @@ export function validateRosterMutation(
   request: Request,
   sessionId: string,
   currentStatus: SessionStatus,
+  localRuntimeBootstrapBound = false,
 ) {
+  if (localRuntimeBootstrapBound) {
+    return bootstrapBoundRosterResponse(request, sessionId);
+  }
+
   if (currentStatus === "ended") {
     return terminalSessionResponse(request, sessionId);
   }
@@ -124,9 +134,14 @@ export function validateSeatPatch(
   sessionId: string,
   currentStatus: SessionStatus,
   patch: UpdateControlSeatInput,
+  localRuntimeBootstrapBound = false,
 ) {
   if (currentStatus === "ended") {
     return terminalSessionResponse(request, sessionId);
+  }
+
+  if (touchesRosterFields(patch) && localRuntimeBootstrapBound) {
+    return bootstrapBoundRosterResponse(request, sessionId);
   }
 
   if (touchesRosterFields(patch) && !ROSTER_EDITABLE_SESSION_STATUSES.has(currentStatus)) {

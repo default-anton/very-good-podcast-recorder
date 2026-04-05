@@ -21,6 +21,7 @@ web/session/dist/
 *.db-*
 *.webm
 *.wav
+!e2e/fixtures/fake-media/*.wav
 *.mp4
 *.mov
 *.m4a
